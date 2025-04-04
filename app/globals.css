@@ -2,20 +2,135 @@
 @tailwind components;
 @tailwind utilities;
 
+/* Default (Light) Theme */
 :root {
-  --background: #ffffff;
-  --foreground: #171717;
+  --bg-color: #f9fafb;
+  --text-color: #1f2937;
+  --accent-color: #2563eb;
+  --accent-hover: #1e40af;
+  --card-color: #ffffff;
+  --border-color: #e5e7eb;
+  --link-color: #2563eb;
+  --link-hover: #1e40af;
+  --input-bg: #ffffff;
+  --input-text: #111827;
+  --shadow-color: rgba(0, 0, 0, 0.1);
 }
 
+/* Dark Theme */
+.theme-dark {
+  --bg-color: #1f2937;
+  --text-color: #f9fafb;
+  --accent-color: #10b981;
+  --accent-hover: #059669;
+  --card-color: #374151;
+  --border-color: #4b5563;
+  --link-color: #34d399;
+  --link-hover: #10b981;
+  --input-bg: #4b5563;
+  --input-text: #000;
+  --shadow-color: rgba(0, 0, 0, 0.6);
+}
+
+/* Vibrant Theme */
+.theme-vibrant {
+  --bg-color: #fff7ed;
+  --text-color: #1c1917;
+  --accent-color: #f97316;
+  --accent-hover: #ea580c;
+  --card-color: #fef3c7;
+  --border-color: #fdba74;
+  --link-color: #f97316;
+  --link-hover: #ea580c;
+  --input-bg: #fffbeb;
+  --input-text: #1c1917;
+  --shadow-color: rgba(255, 119, 0, 0.3);
+}
+
+/* Match system dark mode preferences */
 @media (prefers-color-scheme: dark) {
   :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
+    --bg-color: #f9fafb;
+    --text-color: #1f2937;
+    --accent-color: #2563eb;
+    --accent-hover: #1e40af;
+    --card-color: #ffffff;
+    --border-color: #e5e7eb;
+    --link-color: #2563eb;
+    --link-hover: #1e40af;
+    --input-bg: #ffffff;
+    --input-text: #111827;
+    --shadow-color: rgba(0, 0, 0, 0.1);
+  }
+
+  .theme-dark {
+    --bg-color: #1f2937;
+    --text-color: #f9fafb;
+    --accent-color: #10b981;
+    --accent-hover: #059669;
+    --card-color: #374151;
+    --border-color: #4b5563;
+    --link-color: #34d399;
+    --link-hover: #10b981;
+    --input-bg: #4b5563;
+    --input-text: #f9fafb;
+    --shadow-color: rgba(0, 0, 0, 0.6);
+  }
+
+  .theme-vibrant {
+    --bg-color: #fff7ed;
+    --text-color: #1c1917;
+    --accent-color: #f97316;
+    --accent-hover: #ea580c;
+    --card-color: #fef3c7;
+    --border-color: #fdba74;
+    --link-color: #f97316;
+    --link-hover: #ea580c;
+    --input-bg: #fffbeb;
+    --input-text: #1c1917;
+    --shadow-color: rgba(255, 119, 0, 0.3);
   }
 }
 
+/* Global base styling */
 body {
-  color: var(--foreground);
-  background: var(--background);
+  color: var(--text-color);
+  background: var(--bg-color);
   font-family: Arial, Helvetica, sans-serif;
+  transition: background 0.3s ease, color 0.3s ease;
+}
+
+/* 🎯 Themed table styling */
+table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+th,
+td {
+  padding: 0.75rem 1rem;
+  text-align: left;
+  border-top: 1px solid var(--border-color);
+}
+
+thead {
+  background-color: var(--accent-color);
+  color: white;
+}
+
+tbody tr:hover {
+  background-color: color-mix(in srgb, var(--accent-color) 10%, transparent);
+}
+
+tbody tr.highlighted {
+  background-color: color-mix(in srgb, var(--accent-color) 15%, transparent);
+  font-weight: 600;
+}
+
+/* Optional: Responsive tweaks */
+@media (max-width: 640px) {
+  th,
+  td {
+    padding: 0.5rem 0.75rem;
+  }
 }

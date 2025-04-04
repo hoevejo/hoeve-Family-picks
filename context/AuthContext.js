@@ -5,9 +5,11 @@ import { auth } from "../lib/firebaseConfig";
 import { doc, getDoc } from "firebase/firestore";
 import { db } from "../lib/firebaseConfig";
 
+// Initial context shape
 const AuthContext = createContext({
   user: null,
   isAdmin: false,
+  loading: true,
   logout: () => {},
 });
 
@@ -19,21 +21,35 @@ export const AuthProvider = ({ children }) => {
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, async (currentUser) => {
       if (currentUser) {
-        setUser(currentUser);
-
-        // ✅ Fetch admin status from Firestore
         try {
           const userRef = doc(db, "users", currentUser.uid);
           const userSnap = await getDoc(userRef);
 
           if (userSnap.exists()) {
-            setIsAdmin(userSnap.data().isAdmin === true);
+            const firestoreUser = userSnap.data();
+
+            // Merge Firebase Auth user and Firestore user data
+            setUser({
+              ...currentUser,
+              ...firestoreUser,
+            });
+
+            setIsAdmin(firestoreUser.isAdmin === true);
+            const theme = firestoreUser.theme || "theme-light";
+            document.documentElement.classList.remove(
+              "theme-light",
+              "theme-dark",
+              "theme-vibrant"
+            );
+            document.documentElement.classList.add(theme);
           } else {
             console.warn("User document not found in Firestore.");
+            setUser(currentUser);
             setIsAdmin(false);
           }
         } catch (error) {
           console.error("Error fetching user data:", error);
+          setUser(currentUser);
           setIsAdmin(false);
         }
       } else {
@@ -59,7 +75,7 @@ export const AuthProvider = ({ children }) => {
   );
 };
 
-// Custom hook to use Auth Context safely
+// Custom hook for consuming the auth context
 export const useAuth = () => {
   return useContext(AuthContext);
 };

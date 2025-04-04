@@ -4,107 +4,86 @@ import { useRouter } from "next/navigation";
 import { signInWithEmailAndPassword } from "firebase/auth";
 import { auth } from "../../lib/firebaseConfig";
 import { useAuth } from "../../context/AuthContext";
-import { doc, getDoc } from "firebase/firestore";
-import { db } from "../../lib/firebaseConfig";
+import toast from "react-hot-toast";
 
 export default function Login() {
-  const { user, isAdmin, loading } = useAuth();
+  const { user, loading } = useAuth();
   const router = useRouter();
 
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
-  const [error, setError] = useState("");
   const [isLoggingIn, setIsLoggingIn] = useState(false);
 
-  // ✅ Ensure `isAdmin` is determined before redirecting
   useEffect(() => {
-    if (!loading && user !== null && isAdmin !== null) {
-      if (isAdmin) {
-        console.log("✅ Redirecting admin to /admin/dashboard");
-        router.push("/admin/dashboard");
-      } else {
-        console.log("✅ Redirecting user to /");
-        router.push("/");
-      }
-    }
-  }, [user, isAdmin, loading, router]);
+    if (!loading && user) router.push("/");
+  }, [user, loading, router]);
 
-  // ✅ Handle Login with Email/Password
   const handleLogin = async (e) => {
     e.preventDefault();
     setIsLoggingIn(true);
-    setError("");
+    const toastId = "login-toast";
+    toast.loading("Signing in...", { id: toastId });
 
     try {
-      const userCredential = await signInWithEmailAndPassword(
-        auth,
-        email,
-        password
-      );
-      const loggedInUser = userCredential.user;
-
-      // ✅ Fetch `isAdmin` status after login
-      const userRef = doc(db, "users", loggedInUser.uid);
-      const userSnap = await getDoc(userRef);
-
-      if (userSnap.exists()) {
-        const userData = userSnap.data();
-        console.log("🔹 Admin Check After Login:", userData);
-
-        if (userData.isAdmin) {
-          console.log("✅ Redirecting to Admin Dashboard");
-          router.push("/admin/dashboard");
-        } else {
-          console.log("✅ Redirecting to Home");
-          router.push("/");
-        }
-      } else {
-        console.warn("User document not found in Firestore.");
-        setError("Authentication successful, but user data not found.");
-      }
+      await signInWithEmailAndPassword(auth, email, password);
+      toast.success("Welcome back!", { id: toastId });
     } catch (err) {
-      setError("Invalid email or password.");
+      toast.error("Invalid email or password.", { id: toastId });
       setIsLoggingIn(false);
     }
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gray-100">
-      <div className="bg-white p-8 shadow-md rounded-md w-full max-w-md">
-        <h1 className="text-2xl font-bold text-center mb-6">Login</h1>
+    <div
+      className="relative min-h-screen flex items-center justify-center bg-cover bg-center bg-no-repeat"
+      style={{ backgroundImage: "url('/images/football-background.png')" }}
+    >
+      {/* Dark overlay */}
+      <div className="absolute inset-0 bg-black/40 z-0" />
 
-        {error && <p className="text-red-500 text-center mb-4">{error}</p>}
+      {/* Padded container to avoid screen-edge clipping */}
+      <div className="relative z-10 w-full max-w-md px-4">
+        <div className="bg-white shadow-2xl rounded-xl p-8 backdrop-blur-md">
+          <h1 className="text-3xl font-bold text-blue-800 text-center mb-6">
+            Login
+          </h1>
 
-        <form onSubmit={handleLogin} className="space-y-4">
-          <div>
-            <label className="block font-medium">Email</label>
+          <form onSubmit={handleLogin} className="space-y-4">
             <input
               type="email"
-              className="w-full p-2 border rounded-md"
+              placeholder="Email"
               value={email}
               onChange={(e) => setEmail(e.target.value)}
               required
+              className="w-full p-3 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
             />
-          </div>
-          <div>
-            <label className="block font-medium">Password</label>
             <input
               type="password"
-              className="w-full p-2 border rounded-md"
+              placeholder="Password"
               value={password}
               onChange={(e) => setPassword(e.target.value)}
               required
+              className="w-full p-3 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
             />
-          </div>
+            <button
+              type="submit"
+              disabled={isLoggingIn}
+              className="w-full bg-blue-600 text-white py-2 rounded-lg font-medium hover:bg-blue-700 transition flex justify-center items-center gap-2"
+            >
+              {isLoggingIn && (
+                <span className="h-4 w-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
+              )}
+              {isLoggingIn ? "Logging in..." : "Login"}
+            </button>
+          </form>
 
-          <button
-            type="submit"
-            className="w-full bg-blue-500 text-white py-2 rounded-md hover:bg-blue-600"
-            disabled={isLoggingIn}
-          >
-            {isLoggingIn ? "Logging in..." : "Login"}
-          </button>
-        </form>
+          <p className="text-center text-sm text-gray-600 mt-4">
+            Don’t have an account?{" "}
+            <a href="/register" className="text-blue-600 hover:underline">
+              Register
+            </a>
+          </p>
+        </div>
       </div>
     </div>
   );

@@ -3,8 +3,9 @@ import { useState, useEffect } from "react";
 import { createUserWithEmailAndPassword, updateProfile } from "firebase/auth";
 import { useRouter } from "next/navigation";
 import { auth, db } from "../../lib/firebaseConfig";
-import { doc, setDoc, getDoc } from "firebase/firestore";
+import { doc, setDoc, serverTimestamp } from "firebase/firestore";
 import { useAuth } from "../../context/AuthContext";
+import toast from "react-hot-toast";
 
 export default function Register() {
   const { user } = useAuth();
@@ -16,32 +17,28 @@ export default function Register() {
     password: "",
     confirmPassword: "",
   });
-  const [error, setError] = useState(null);
   const [loading, setLoading] = useState(false);
 
-  // Redirect if already logged in
   useEffect(() => {
-    if (user) {
-      router.replace("/");
-    }
+    if (user) router.replace("/");
   }, [user, router]);
 
-  const handleChange = (e) => {
+  const handleChange = (e) =>
     setForm({ ...form, [e.target.name]: e.target.value });
-  };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    setError(null);
-
-    if (form.password !== form.confirmPassword) {
-      setError("Passwords do not match!");
-      return;
-    }
+    if (form.password !== form.confirmPassword)
+      return toast.error("Passwords do not match!");
 
     setLoading(true);
+    const toastId = "register-toast";
+    toast.loading("Creating account...", { id: toastId });
+
+    const fullName = `${form.firstName} ${form.lastName}`;
+    const avatarUrl = `https://api.dicebear.com/7.x/initials/png?seed=${form.firstName}%20${form.lastName}`;
+
     try {
-      // Step 1: Create User in Firebase Authentication
       const userCredential = await createUserWithEmailAndPassword(
         auth,
         form.email,
@@ -49,103 +46,124 @@ export default function Register() {
       );
       const newUser = userCredential.user;
 
-      // Step 2: Update User Profile in Authentication (Display Name)
-      await updateProfile(newUser, {
-        displayName: `${form.firstName} ${form.lastName}`,
-      });
+      await updateProfile(newUser, { displayName: fullName });
 
-      // Step 3: Store User Info in Firestore
       await setDoc(doc(db, "users", newUser.uid), {
+        uid: newUser.uid,
         firstName: form.firstName,
         lastName: form.lastName,
+        fullName,
+        displayName: fullName,
         email: newUser.email,
-        createdAt: new Date().toISOString(),
-        profilePicture: "https://via.placeholder.com/150",
+        createdAt: serverTimestamp(),
+        profilePicture: avatarUrl,
+        totalPoints: 0,
+        weeklyPoints: {},
         isAdmin: false,
+        theme: "theme-light",
       });
 
-      // Step 4: Add User to the Global Leaderboard
-      await setDoc(doc(db, `leaderboard`, newUser.uid), {
+      await setDoc(doc(db, "leaderboard", newUser.uid), {
+        uid: newUser.uid,
+        fullName,
         firstName: form.firstName,
-        totalPoints: 0, // New users start with 0 points
-        lastWeekPoints: 0,
+        lastName: form.lastName,
+        profilePicture: avatarUrl,
+        totalPoints: 0,
+        currentRank: 0,
+        previousRank: 0,
         positionChange: 0,
       });
 
-      // Redirect to homepage after successful registration
+      toast.success("Account created! Redirecting...", { id: toastId });
       router.replace("/");
     } catch (err) {
-      setError(err.message);
+      toast.error(err.message || "Registration failed.", { id: toastId });
     }
+
     setLoading(false);
   };
 
   return (
-    <div className="flex flex-col items-center justify-center min-h-screen bg-gray-100">
-      <h1 className="text-2xl font-bold mb-4">Create an Account</h1>
-      {error && <p className="text-red-500">{error}</p>}
+    <div
+      className="relative min-h-screen flex items-center justify-center bg-cover bg-center bg-no-repeat"
+      style={{ backgroundImage: "url('/images/football-background.png')" }}
+    >
+      {/* Dark overlay */}
+      <div className="absolute inset-0 bg-black/40 z-0" />
 
-      <form onSubmit={handleSubmit} className="flex flex-col gap-4 w-80">
-        <input
-          type="text"
-          name="firstName"
-          placeholder="First Name"
-          className="border p-2 rounded"
-          value={form.firstName}
-          onChange={handleChange}
-          required
-        />
-        <input
-          type="text"
-          name="lastName"
-          placeholder="Last Name"
-          className="border p-2 rounded"
-          value={form.lastName}
-          onChange={handleChange}
-          required
-        />
-        <input
-          type="email"
-          name="email"
-          placeholder="Email"
-          className="border p-2 rounded"
-          value={form.email}
-          onChange={handleChange}
-          required
-        />
-        <input
-          type="password"
-          name="password"
-          placeholder="Password"
-          className="border p-2 rounded"
-          value={form.password}
-          onChange={handleChange}
-          required
-        />
-        <input
-          type="password"
-          name="confirmPassword"
-          placeholder="Confirm Password"
-          className="border p-2 rounded"
-          value={form.confirmPassword}
-          onChange={handleChange}
-          required
-        />
-        <button
-          type="submit"
-          className="bg-blue-500 text-white px-4 py-2 rounded"
-          disabled={loading}
-        >
-          {loading ? "Registering..." : "Register"}
-        </button>
-      </form>
+      {/* Padded outer container to avoid edge clipping */}
+      <div className="relative z-10 w-full max-w-md px-4">
+        <div className="bg-white shadow-2xl rounded-xl p-8 backdrop-blur-md">
+          <h1 className="text-3xl font-bold text-blue-800 text-center mb-6">
+            Register
+          </h1>
 
-      <button
-        className="mt-4 text-blue-500 underline"
-        onClick={() => router.push("/login")}
-      >
-        Already have an account? Login
-      </button>
+          <form onSubmit={handleSubmit} className="space-y-4">
+            <input
+              name="firstName"
+              placeholder="First Name"
+              value={form.firstName}
+              onChange={handleChange}
+              required
+              className="w-full p-3 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+            />
+            <input
+              name="lastName"
+              placeholder="Last Name"
+              value={form.lastName}
+              onChange={handleChange}
+              required
+              className="w-full p-3 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+            />
+            <input
+              type="email"
+              name="email"
+              placeholder="Email"
+              value={form.email}
+              onChange={handleChange}
+              required
+              className="w-full p-3 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+            />
+            <input
+              type="password"
+              name="password"
+              placeholder="Password"
+              value={form.password}
+              onChange={handleChange}
+              required
+              className="w-full p-3 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+            />
+            <input
+              type="password"
+              name="confirmPassword"
+              placeholder="Confirm Password"
+              value={form.confirmPassword}
+              onChange={handleChange}
+              required
+              className="w-full p-3 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+            />
+
+            <button
+              type="submit"
+              disabled={loading}
+              className="w-full bg-blue-600 text-white py-2 rounded-lg font-medium hover:bg-blue-700 transition flex justify-center items-center gap-2"
+            >
+              {loading && (
+                <span className="h-4 w-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
+              )}
+              {loading ? "Registering..." : "Register"}
+            </button>
+          </form>
+
+          <p className="text-center text-sm text-gray-700 mt-4">
+            Already have an account?{" "}
+            <a href="/login" className="text-blue-600 hover:underline">
+              Login
+            </a>
+          </p>
+        </div>
+      </div>
     </div>
   );
 }
