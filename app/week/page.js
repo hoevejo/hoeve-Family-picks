@@ -1,7 +1,16 @@
 "use client";
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
-import { doc, getDoc, setDoc } from "firebase/firestore";
+import Image from "next/image";
+import {
+  collection,
+  doc,
+  getDocs,
+  getDoc,
+  setDoc,
+  query,
+  where,
+} from "firebase/firestore";
 import { db } from "../../lib/firebaseConfig";
 import { useAuth } from "../../context/AuthContext";
 
@@ -12,151 +21,141 @@ export default function WeeklyPicks() {
   const [predictions, setPredictions] = useState({});
   const [week, setWeek] = useState(null);
   const [seasonYear, setSeasonYear] = useState(null);
-  const [seasonType, setSeasonType] = useState("Regular Season");
+  const [seasonType, setSeasonType] = useState("Regular");
   const [deadline, setDeadline] = useState(null);
   const [isDeadlinePassed, setIsDeadlinePassed] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
+  const [allUserPicks, setAllUserPicks] = useState([]);
 
-  // ✅ Fetch Firestore Config (Current Week, Season & Deadline)
+  useEffect(() => {
+    const theme = localStorage.getItem("theme") || "theme-light";
+    document.body.classList.remove(
+      "theme-light",
+      "theme-dark",
+      "theme-vibrant"
+    );
+    document.body.classList.add(theme);
+  }, []);
+
   useEffect(() => {
     const fetchConfig = async () => {
       try {
-        console.log("Fetching Firestore config...");
-        const configDoc = await getDoc(doc(db, "config", "predictionSettings"));
-
+        const configDoc = await getDoc(doc(db, "config", "config"));
         if (configDoc.exists()) {
           const configData = configDoc.data();
-          console.log("Config Data:", configData);
-
           setWeek(configData.week);
-          setSeasonYear(configData.seasonYear || new Date().getFullYear());
-          setSeasonType(configData.seasonType || "Regular Season");
+          setSeasonYear(configData.seasonYear);
+          setSeasonType(configData.seasonType);
 
-          // ✅ Convert Firestore Timestamp correctly
           if (configData.deadline && configData.deadline.seconds) {
-            const deadlineDate = new Date(configData.deadline.seconds * 1000); // Convert Firestore Timestamp
+            const deadlineDate = new Date(configData.deadline.seconds * 1000);
             setDeadline(deadlineDate);
             setIsDeadlinePassed(new Date() > deadlineDate);
-          } else {
-            console.warn(
-              "Invalid Firestore deadline format:",
-              configData.deadline
-            );
-            setDeadline(null);
           }
-        } else {
-          console.warn("Firestore config not found!");
         }
       } catch (error) {
-        console.error("Error fetching configuration data:", error);
+        console.error("Error fetching config:", error);
       }
     };
 
     fetchConfig();
   }, []);
 
-  // ✅ Fetch Games from Firestore
   useEffect(() => {
     if (!seasonYear || !seasonType || !week) return;
-
     const fetchGames = async () => {
       try {
-        console.log(
-          `Fetching games for ${seasonYear}-${seasonType}-Week ${week}...`
-        );
-        const gamesDoc = await getDoc(
-          doc(db, "games", `${seasonYear}-${seasonType}-week${week}`)
-        );
-
-        if (gamesDoc.exists()) {
-          setGames(gamesDoc.data().games);
-          console.log("Games Data:", gamesDoc.data().games);
-        } else {
-          console.warn("No games found for this week.");
-        }
+        const snapshot = await getDocs(collection(db, "games"));
+        const filteredGames = snapshot.docs
+          .map((doc) => doc.data())
+          .filter(
+            (game) =>
+              game.seasonYear === seasonYear &&
+              game.seasonType === seasonType &&
+              game.week === week
+          );
+        setGames(filteredGames);
       } catch (error) {
-        console.error("Error fetching games from Firestore:", error);
+        console.error("Error fetching games:", error);
       } finally {
         setIsLoading(false);
       }
     };
-
     fetchGames();
   }, [seasonYear, seasonType, week]);
 
-  // ✅ Fetch User's Existing Predictions
   useEffect(() => {
     if (!user || !week || !seasonYear) return;
-
-    const fetchUserPredictions = async () => {
+    const fetchPredictions = async () => {
       try {
-        console.log("Fetching user predictions...");
-        const predictionsDocRef = doc(
+        const ref = doc(
           db,
           "picks",
           `${seasonYear}-${seasonType}-week${week}-${user.uid}`
         );
-        const predictionsDoc = await getDoc(predictionsDocRef);
-
-        if (predictionsDoc.exists()) {
-          setPredictions(predictionsDoc.data().predictions);
-          console.log(
-            "User predictions found:",
-            predictionsDoc.data().predictions
-          );
-        } else {
-          console.log("No predictions found for this user.");
+        const snap = await getDoc(ref);
+        if (snap.exists()) {
+          const picks = snap.data().predictions || {};
+          setPredictions(picks);
         }
       } catch (error) {
         console.error("Error fetching user predictions:", error);
       }
     };
+    fetchPredictions();
+  }, [user, week, seasonType, seasonYear]);
 
-    if (!isDeadlinePassed) {
-      fetchUserPredictions();
-    }
-  }, [user, week, seasonYear, isDeadlinePassed]);
+  useEffect(() => {
+    if (!isDeadlinePassed || !seasonYear || !seasonType || !week) return;
+    const fetchAllUserPicks = async () => {
+      try {
+        const picksQuery = query(
+          collection(db, "picks"),
+          where("seasonYear", "==", seasonYear),
+          where("seasonType", "==", seasonType),
+          where("week", "==", week)
+        );
+        const snapshot = await getDocs(picksQuery);
+        const picks = snapshot.docs.map((doc) => doc.data());
+        setAllUserPicks(picks);
+      } catch (error) {
+        console.error("Error fetching all picks:", error);
+      }
+    };
+    fetchAllUserPicks();
+  }, [isDeadlinePassed, seasonYear, seasonType, week]);
 
-  // ✅ Handle Prediction Changes
   const handlePredictionChange = (gameId, teamId) => {
-    setPredictions((prev) => ({ ...prev, [gameId]: teamId }));
+    setPredictions((prev) => ({
+      ...prev,
+      [gameId]: { teamId, isCorrect: null },
+    }));
   };
 
-  // ✅ Submit Predictions to Firestore
   const handleSubmit = async (event) => {
     event.preventDefault();
-
-    if (!games.length) return;
-
     try {
-      if (user && week && seasonYear) {
-        const predictionsDocRef = doc(
-          db,
-          "picks",
-          `${seasonYear}-${seasonType}-week${week}-${user.uid}`
-        );
-        await setDoc(
-          predictionsDocRef,
-          {
-            predictions,
-            userId: user.uid,
-            seasonYear,
-            seasonType,
-            week,
-          },
-          { merge: true }
-        );
-
-        alert("Prediction Submitted Successfully");
-        router.push("/");
-      }
+      const ref = doc(
+        db,
+        "picks",
+        `${seasonYear}-${seasonType}-week${week}-${user.uid}`
+      );
+      await setDoc(ref, {
+        predictions,
+        userId: user.uid,
+        seasonYear,
+        seasonType,
+        week,
+      });
+      alert("Predictions submitted!");
+      router.push("/");
     } catch (error) {
-      console.error("Error submitting predictions:", error);
+      console.error("Error submitting:", error);
     }
   };
 
   return (
-    <div className="p-6">
+    <div className="p-6 bg-[var(--bg-color)] text-[var(--text-color)] transition-colors min-h-screen">
       {isLoading ? (
         <p className="text-center">Loading...</p>
       ) : !games.length ? (
@@ -172,44 +171,46 @@ export default function WeeklyPicks() {
           <form onSubmit={handleSubmit}>
             {games.map((game) => (
               <div
-                key={game.gameId}
-                className="my-4 p-4 bg-white shadow-md rounded-lg"
+                key={game.id}
+                className="my-4 p-4 bg-[var(--card-color)] shadow-md rounded-lg"
               >
                 <h3 className="text-lg font-semibold text-center mb-3">
-                  {game.shortName}
+                  {game.name}
                 </h3>
                 <div className="flex justify-center space-x-6">
                   {[game.homeTeam, game.awayTeam].map((team) => (
                     <label
                       key={team.id}
                       className={`cursor-pointer flex flex-col items-center p-3 border-2 rounded-lg transition-all
-              ${
-                predictions[game.gameId] === team.id
-                  ? "border-blue-500 bg-blue-100 shadow-md"
-                  : "border-gray-300 bg-white hover:bg-gray-100"
-              }
-            `}
-                      onClick={() =>
-                        handlePredictionChange(game.gameId, team.id)
-                      }
+                        ${
+                          predictions[game.id]?.teamId === team.id
+                            ? "border-blue-500 bg-blue-100 shadow-md"
+                            : "border-[var(--border-color)] bg-[var(--card-color)] hover:bg-[var(--hover-color)]"
+                        }
+                      `}
+                      onClick={() => handlePredictionChange(game.id, team.id)}
                     >
                       <input
                         type="radio"
-                        name={`prediction-${game.gameId}`}
+                        name={`prediction-${game.id}`}
                         value={team.id}
-                        checked={predictions[game.gameId] === team.id}
+                        checked={predictions[game.id]?.teamId === team.id}
                         onChange={() =>
-                          handlePredictionChange(game.gameId, team.id)
+                          handlePredictionChange(game.id, team.id)
                         }
                         className="hidden"
                       />
-                      <img
+                      <Image
                         src={team.logo}
                         alt={team.name}
-                        className="w-16 h-16"
+                        width={64}
+                        height={64}
                       />
                       <span className="mt-2 text-lg font-semibold">
                         {team.name}
+                      </span>
+                      <span className="text-sm text-gray-500">
+                        Record: {team.record || "N/A"}
                       </span>
                     </label>
                   ))}
@@ -226,9 +227,63 @@ export default function WeeklyPicks() {
           </form>
         </>
       ) : (
-        <h2 className="text-center text-xl">
-          Predictions are locked. Check results soon!
-        </h2>
+        <>
+          <h1 className="text-2xl font-bold text-center mb-4">
+            Predictions Locked – See What Everyone Picked
+          </h1>
+          <div className="space-y-4">
+            {games.map((game) => (
+              <details
+                key={game.id}
+                className="bg-[var(--card-color)] rounded shadow-md"
+              >
+                <summary className="px-4 py-3 font-semibold cursor-pointer">
+                  {game.name}
+                </summary>
+                <div className="p-4 border-t grid grid-cols-1 sm:grid-cols-2 gap-6">
+                  {[game.homeTeam, game.awayTeam].map((team) => (
+                    <div key={team.id}>
+                      <div className="flex items-center gap-2 mb-2">
+                        <Image
+                          src={team.logo}
+                          alt={team.name}
+                          width={24}
+                          height={24}
+                        />
+                        <span className="font-semibold">{team.name}</span>
+                      </div>
+                      <ul className="ml-6 list-disc text-sm text-[var(--text-color)]">
+                        {allUserPicks
+                          .filter(
+                            (entry) =>
+                              entry.predictions?.[game.id]?.teamId === team.id
+                          )
+                          .map((entry) => (
+                            <li key={entry.userId}>
+                              {entry.userId === user?.uid
+                                ? "You"
+                                : entry.userId}
+                              {entry.predictions[game.id].isCorrect ===
+                                true && (
+                                <span className="text-green-500">
+                                  {" "}
+                                  (Correct)
+                                </span>
+                              )}
+                              {entry.predictions[game.id].isCorrect ===
+                                false && (
+                                <span className="text-red-500"> (Wrong)</span>
+                              )}
+                            </li>
+                          ))}
+                      </ul>
+                    </div>
+                  ))}
+                </div>
+              </details>
+            ))}
+          </div>
+        </>
       )}
     </div>
   );

@@ -1,6 +1,7 @@
 "use client";
+
 import { useState, useEffect } from "react";
-import { collection, getDocs } from "firebase/firestore";
+import { collection, getDocs, getDoc, doc } from "firebase/firestore";
 import { db } from "../lib/firebaseConfig";
 import Image from "next/image";
 import { useAuth } from "../context/AuthContext";
@@ -9,11 +10,29 @@ export default function Leaderboard() {
   const { user } = useAuth();
   const [leaderboard, setLeaderboard] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [activeTab, setActiveTab] = useState("Regular Season");
+  const tabs = ["Regular Season", "Postseason", "All-Time"];
+
+  useEffect(() => {
+    const fetchConfig = async () => {
+      const configDoc = await getDoc(doc(db, "config", "predictionSettings"));
+      if (configDoc.exists()) {
+        const config = configDoc.data();
+        setActiveTab(config.seasonType);
+      }
+    };
+    fetchConfig();
+  }, []);
 
   useEffect(() => {
     const fetchLeaderboard = async () => {
+      setLoading(true);
       try {
-        const leaderboardRef = collection(db, "leaderboard");
+        let refPath = "leaderboard";
+        if (activeTab === "Postseason") refPath = "leaderboardPostseason";
+        if (activeTab === "All-Time") refPath = "leaderboardAllTime";
+
+        const leaderboardRef = collection(db, refPath);
         const snapshot = await getDocs(leaderboardRef);
         const data = snapshot.docs.map((doc) => ({
           id: doc.id,
@@ -30,7 +49,15 @@ export default function Leaderboard() {
     };
 
     fetchLeaderboard();
-  }, []);
+  }, [activeTab]);
+
+  const getRankDisplay = (index, points, list) => {
+    if (index === 0) return 1;
+    const prevPoints = list[index - 1].totalPoints;
+    return points === prevPoints
+      ? getRankDisplay(index - 1, prevPoints, list)
+      : index + 1;
+  };
 
   if (loading)
     return (
@@ -41,9 +68,25 @@ export default function Leaderboard() {
 
   return (
     <div className="flex flex-col items-center min-h-screen px-4 py-6 bg-[var(--bg-color)] text-[var(--text-color)] transition-colors">
-      <h1 className="text-2xl font-bold mb-6">
+      <h1 className="text-2xl font-bold mb-4">
         🏆 NFL Pick&apos;em Leaderboard
       </h1>
+
+      <div className="flex gap-4 mb-6">
+        {tabs.map((tab) => (
+          <button
+            key={tab}
+            onClick={() => setActiveTab(tab)}
+            className={`px-4 py-2 rounded-full font-medium transition border text-sm sm:text-base ${
+              activeTab === tab
+                ? "bg-[var(--accent-color)] text-white border-transparent"
+                : "bg-transparent border-[var(--border-color)] text-[var(--text-color)] hover:bg-[var(--accent-color)/10]"
+            }`}
+          >
+            {tab}
+          </button>
+        ))}
+      </div>
 
       <div className="w-full max-w-6xl bg-[var(--card-color)] border border-[var(--border-color)] rounded-xl shadow-md overflow-x-auto">
         <table className="w-full text-sm sm:text-base table-auto border-collapse">
@@ -58,14 +101,21 @@ export default function Leaderboard() {
               <th className="px-4 py-3 text-right w-24 border-r border-[var(--border-color)]">
                 Points
               </th>
-              <th className="px-2 py-3 text-center w-5 border-x border-[var(--border-color)]">
-                Change
-              </th>
+              {activeTab !== "All-Time" && (
+                <th className="px-2 py-3 text-center w-5 border-x border-[var(--border-color)]">
+                  Change
+                </th>
+              )}
             </tr>
           </thead>
           <tbody className="divide-y divide-[var(--border-color)]">
             {leaderboard.map((entry, index) => {
               const isCurrentUser = user?.uid === entry.uid;
+              const rank = getRankDisplay(
+                index,
+                entry.totalPoints,
+                leaderboard
+              );
 
               return (
                 <tr
@@ -77,7 +127,7 @@ export default function Leaderboard() {
                   }`}
                 >
                   <td className="px-4 py-3 text-center font-bold border-x border-[var(--border-color)]">
-                    {index + 1}
+                    {rank}
                   </td>
 
                   <td className="px-4 py-3 whitespace-nowrap border-l border-[var(--border-color)]">
@@ -97,21 +147,23 @@ export default function Leaderboard() {
                     {entry.totalPoints}
                   </td>
 
-                  <td
-                    className={`px-2 py-3 text-center font-medium border-x border-[var(--border-color)] ${
-                      entry.positionChange > 0
-                        ? "text-green-500"
-                        : entry.positionChange < 0
-                        ? "text-red-500"
-                        : "text-gray-500"
-                    }`}
-                  >
-                    {entry.positionChange > 0 && "▲ "}
-                    {entry.positionChange < 0 && "▼ "}
-                    {entry.positionChange === 0 && "—"}
-                    {entry.positionChange !== 0 &&
-                      Math.abs(entry.positionChange)}
-                  </td>
+                  {activeTab !== "All-Time" && (
+                    <td
+                      className={`px-2 py-3 text-center font-medium border-x border-[var(--border-color)] ${
+                        entry.positionChange > 0
+                          ? "text-green-500"
+                          : entry.positionChange < 0
+                          ? "text-red-500"
+                          : "text-gray-500"
+                      }`}
+                    >
+                      {entry.positionChange > 0 && "▲ "}
+                      {entry.positionChange < 0 && "▼ "}
+                      {entry.positionChange === 0 && "—"}
+                      {entry.positionChange !== 0 &&
+                        Math.abs(entry.positionChange)}
+                    </td>
+                  )}
                 </tr>
               );
             })}

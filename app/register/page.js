@@ -1,4 +1,5 @@
 "use client";
+
 import { useState, useEffect } from "react";
 import { createUserWithEmailAndPassword, updateProfile } from "firebase/auth";
 import { useRouter } from "next/navigation";
@@ -63,7 +64,7 @@ export default function Register() {
         theme: "theme-light",
       });
 
-      await setDoc(doc(db, "leaderboard", newUser.uid), {
+      const leaderboardData = {
         uid: newUser.uid,
         fullName,
         firstName: form.firstName,
@@ -73,7 +74,14 @@ export default function Register() {
         currentRank: 0,
         previousRank: 0,
         positionChange: 0,
-      });
+      };
+
+      await setDoc(doc(db, "leaderboard", newUser.uid), leaderboardData);
+      await setDoc(
+        doc(db, "leaderboardPostseason", newUser.uid),
+        leaderboardData
+      );
+      await setDoc(doc(db, "leaderboardAllTime", newUser.uid), leaderboardData);
 
       toast.success("Account created! Redirecting...", { id: toastId });
       router.replace("/");
