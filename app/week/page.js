@@ -1,4 +1,7 @@
+// /app/weeklyPicks/page.js
+
 "use client";
+
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import Image from "next/image";
@@ -26,6 +29,7 @@ export default function WeeklyPicks() {
   const [isDeadlinePassed, setIsDeadlinePassed] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
   const [allUserPicks, setAllUserPicks] = useState([]);
+  const [userMap, setUserMap] = useState({});
 
   useEffect(() => {
     const theme = localStorage.getItem("theme") || "theme-light";
@@ -118,8 +122,16 @@ export default function WeeklyPicks() {
         const snapshot = await getDocs(picksQuery);
         const picks = snapshot.docs.map((doc) => doc.data());
         setAllUserPicks(picks);
+
+        const usersSnapshot = await getDocs(collection(db, "users"));
+        const userMapTemp = {};
+        usersSnapshot.forEach((doc) => {
+          const u = doc.data();
+          userMapTemp[u.uid] = u;
+        });
+        setUserMap(userMapTemp);
       } catch (error) {
-        console.error("Error fetching all picks:", error);
+        console.error("Error fetching all picks or users:", error);
       }
     };
     fetchAllUserPicks();
@@ -134,6 +146,13 @@ export default function WeeklyPicks() {
 
   const handleSubmit = async (event) => {
     event.preventDefault();
+
+    const allPicked = games.every((game) => predictions[game.id]?.teamId);
+    if (!allPicked) {
+      alert("Please make a prediction for every game before submitting.");
+      return;
+    }
+
     try {
       const ref = doc(
         db,
@@ -237,32 +256,59 @@ export default function WeeklyPicks() {
                 key={game.id}
                 className="bg-[var(--card-color)] rounded shadow-md"
               >
-                <summary className="px-4 py-3 font-semibold cursor-pointer">
-                  {game.name}
+                <summary
+                  className={`px-4 py-3 font-semibold cursor-pointer flex items-center justify-between gap-2
+                    ${game.winnerId ? "bg-green-100" : ""}`}
+                >
+                  <div className="flex items-center gap-2">
+                    <Image
+                      src={game.homeTeam.logo}
+                      alt={game.homeTeam.name}
+                      width={20}
+                      height={20}
+                    />
+                    <span>{game.homeTeam.abbreviation}</span>
+                    <span className="mx-1">vs</span>
+                    <Image
+                      src={game.awayTeam.logo}
+                      alt={game.awayTeam.name}
+                      width={20}
+                      height={20}
+                    />
+                    <span>{game.awayTeam.abbreviation}</span>
+                  </div>
                 </summary>
                 <div className="p-4 border-t grid grid-cols-1 sm:grid-cols-2 gap-6">
-                  {[game.homeTeam, game.awayTeam].map((team) => (
-                    <div key={team.id}>
-                      <div className="flex items-center gap-2 mb-2">
-                        <Image
-                          src={team.logo}
-                          alt={team.name}
-                          width={24}
-                          height={24}
-                        />
-                        <span className="font-semibold">{team.name}</span>
-                      </div>
-                      <ul className="ml-6 list-disc text-sm text-[var(--text-color)]">
-                        {allUserPicks
-                          .filter(
-                            (entry) =>
-                              entry.predictions?.[game.id]?.teamId === team.id
-                          )
-                          .map((entry) => (
+                  {[game.homeTeam, game.awayTeam].map((team) => {
+                    const usersForTeam = allUserPicks
+                      .filter(
+                        (entry) =>
+                          entry.predictions?.[game.id]?.teamId === team.id
+                      )
+                      .sort((a, b) => {
+                        const nameA = userMap[a.userId]?.firstName || a.userId;
+                        const nameB = userMap[b.userId]?.firstName || b.userId;
+                        return nameA.localeCompare(nameB);
+                      });
+
+                    return (
+                      <div key={team.id}>
+                        <div className="flex items-center gap-2 mb-2">
+                          <Image
+                            src={team.logo}
+                            alt={team.name}
+                            width={24}
+                            height={24}
+                          />
+                          <span className="font-semibold">{team.name}</span>
+                        </div>
+                        <ul className="ml-6 list-disc text-sm text-[var(--text-color)]">
+                          {usersForTeam.map((entry) => (
                             <li key={entry.userId}>
                               {entry.userId === user?.uid
                                 ? "You"
-                                : entry.userId}
+                                : userMap[entry.userId]?.firstName ||
+                                  entry.userId}
                               {entry.predictions[game.id].isCorrect ===
                                 true && (
                                 <span className="text-green-500">
@@ -276,9 +322,10 @@ export default function WeeklyPicks() {
                               )}
                             </li>
                           ))}
-                      </ul>
-                    </div>
-                  ))}
+                        </ul>
+                      </div>
+                    );
+                  })}
                 </div>
               </details>
             ))}

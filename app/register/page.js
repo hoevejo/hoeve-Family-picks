@@ -61,14 +61,13 @@ export default function Register() {
         totalPoints: 0,
         weeklyPoints: {},
         isAdmin: false,
-        theme: "theme-light",
+        notificationsEnabled: false,
+        theme: "theme-blue-light",
       });
 
       const leaderboardData = {
         uid: newUser.uid,
         fullName,
-        firstName: form.firstName,
-        lastName: form.lastName,
         profilePicture: avatarUrl,
         totalPoints: 0,
         currentRank: 0,

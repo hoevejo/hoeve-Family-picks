@@ -4,12 +4,19 @@
 
 import { useEffect, useState } from "react";
 import { db } from "../../lib/firebaseConfig";
-import { getDoc, doc, collection, getDocs } from "firebase/firestore";
+import {
+  getDoc,
+  doc,
+  collection,
+  getDocs,
+  query,
+  where,
+} from "firebase/firestore";
 import Image from "next/image";
-import GamePredictionView from "../../components/GamePredictionView"; // assumed component to visualize picks
+import GamePredictionView from "../../components/GamePredictionView";
 
 export default function HistoryPage() {
-  const [recap, setRecap] = useState(null);
+  const [history, setHistory] = useState(null);
   const [loading, setLoading] = useState(true);
   const [selectedYear, setSelectedYear] = useState(null);
   const [selectedWeek, setSelectedWeek] = useState(null);
@@ -17,72 +24,67 @@ export default function HistoryPage() {
     useState("Regular Season");
   const [availableYears, setAvailableYears] = useState([]);
   const [availableWeeks, setAvailableWeeks] = useState([]);
-  const [games, setGames] = useState([]);
 
   useEffect(() => {
-    const fetchConfig = async () => {
-      const configDoc = await getDoc(doc(db, "config", "predictionSettings"));
-      if (configDoc.exists()) {
-        const { seasonYear, week, seasonType } = configDoc.data();
-        setSelectedYear(seasonYear);
-        setSelectedWeek(week);
-        setSelectedSeasonType(seasonType);
+    const fetchDefaults = async () => {
+      const configDoc = await getDoc(doc(db, "config", "config"));
+      if (!configDoc.exists()) return;
 
-        const years = Array.from({ length: 5 }, (_, i) => seasonYear - i);
-        setAvailableYears(years);
-
-        const weeks =
-          seasonType === "Postseason"
-            ? [1, 2, 3, 4, 5]
-            : Array.from({ length: 18 }, (_, i) => i + 1);
-        setAvailableWeeks(weeks);
-      }
+      const { seasonYear, recapWeek, seasonType } = configDoc.data();
+      setSelectedYear(seasonYear);
+      setSelectedWeek(recapWeek);
+      setSelectedSeasonType(seasonType);
     };
-    fetchConfig();
+    fetchDefaults();
   }, []);
 
   useEffect(() => {
-    const fetchRecapAndGames = async () => {
+    const fetchAvailableHistory = async () => {
+      const historySnapshot = await getDocs(collection(db, "history"));
+      const yearsSet = new Set();
+      const weeksSet = new Set();
+
+      historySnapshot.forEach((doc) => {
+        const { seasonYear, week, seasonType } = doc.data();
+        if (seasonType === selectedSeasonType) {
+          yearsSet.add(seasonYear);
+          if (seasonYear === selectedYear) weeksSet.add(week);
+        }
+      });
+
+      const years = Array.from(yearsSet).sort((a, b) => b - a);
+      const weeks = Array.from(weeksSet).sort((a, b) => a - b);
+
+      setAvailableYears(years);
+      setAvailableWeeks(weeks);
+      if (!weeks.includes(selectedWeek)) setSelectedWeek(weeks[0]);
+    };
+
+    if (selectedSeasonType && selectedYear !== null) {
+      fetchAvailableHistory();
+    }
+  }, [selectedSeasonType, selectedYear, selectedWeek]);
+
+  useEffect(() => {
+    const fetchHistoryData = async () => {
       setLoading(true);
       try {
-        const configDoc = await getDoc(doc(db, "config", "predictionSettings"));
-        const isCurrentYear = configDoc.data().seasonYear === selectedYear;
-        const source = isCurrentYear ? "weeklyRecap" : "archivedRecaps";
-
-        const recapDoc = await getDoc(
-          doc(
-            db,
-            source,
-            `${selectedYear}-${selectedSeasonType}-week${selectedWeek}`
-          )
-        );
-        if (recapDoc.exists()) {
-          setRecap(recapDoc.data());
+        const docId = `${selectedYear}-${selectedSeasonType}-week${selectedWeek}`;
+        const historyDoc = await getDoc(doc(db, "history", docId));
+        if (historyDoc.exists()) {
+          setHistory(historyDoc.data());
         } else {
-          setRecap(null);
-        }
-
-        const gamesDoc = await getDoc(
-          doc(
-            db,
-            "games",
-            `${selectedYear}-${selectedSeasonType}-week${selectedWeek}`
-          )
-        );
-        if (gamesDoc.exists()) {
-          setGames(gamesDoc.data().games || []);
-        } else {
-          setGames([]);
+          setHistory(null);
         }
       } catch (err) {
-        console.error("Error fetching recap or games:", err);
+        console.error("Error fetching history:", err);
       } finally {
         setLoading(false);
       }
     };
 
     if (selectedYear && selectedWeek && selectedSeasonType) {
-      fetchRecapAndGames();
+      fetchHistoryData();
     }
   }, [selectedYear, selectedWeek, selectedSeasonType]);
 
@@ -136,12 +138,7 @@ export default function HistoryPage() {
             value={selectedSeasonType}
             onChange={(e) => {
               setSelectedSeasonType(e.target.value);
-              const newWeeks =
-                e.target.value === "Postseason"
-                  ? [1, 2, 3, 4, 5]
-                  : Array.from({ length: 18 }, (_, i) => i + 1);
-              setAvailableWeeks(newWeeks);
-              setSelectedWeek(newWeeks[0]);
+              setSelectedWeek(null);
             }}
             className="p-2 border rounded-md"
           >
@@ -165,28 +162,37 @@ export default function HistoryPage() {
 
       {loading ? (
         <p className="text-center text-[var(--text-color)] mt-4">
-          Loading recap...
+          Loading history...
         </p>
-      ) : !recap ? (
-        <p className="text-center text-red-500 mt-4">No recap data found.</p>
+      ) : !history ? (
+        <p className="text-center text-red-500 mt-4">No history data found.</p>
       ) : (
         <div className="max-w-4xl mx-auto space-y-6">
           <h2 className="text-xl font-bold text-center mb-6">
             {selectedSeasonType} - Week {selectedWeek} Recap ({selectedYear})
           </h2>
-          <Section title="🔥 Top Scorers" users={recap.topScorers} />
-          <Section title="❄️ Lowest Scorers" users={recap.lowestScorers} />
-          <Section title="📈 Biggest Risers" users={recap.biggestRisers} />
-          <Section title="📉 Biggest Fallers" users={recap.biggestFallers} />
-          <Section title="📊 All Scores" users={recap.scores} />
+          <Section title="🔥 Top Scorers" users={history.recap.topScorers} />
+          <Section
+            title="❄️ Lowest Scorers"
+            users={history.recap.lowestScorers}
+          />
+          <Section
+            title="📈 Biggest Risers"
+            users={history.recap.biggestRisers}
+          />
+          <Section
+            title="📉 Biggest Fallers"
+            users={history.recap.biggestFallers}
+          />
+          <Section title="📊 All Scores" users={history.recap.scores} />
 
-          {games.length > 0 && (
+          {history.games && history.games.length > 0 && (
             <div className="bg-[var(--card-color)] border border-[var(--border-color)] rounded-xl p-4 shadow">
               <h2 className="text-xl font-bold mb-3 text-[var(--text-color)]">
                 🏈 Weekly Matchups
               </h2>
               <GamePredictionView
-                games={games}
+                games={history.games}
                 seasonYear={selectedYear}
                 seasonType={selectedSeasonType}
                 week={selectedWeek}

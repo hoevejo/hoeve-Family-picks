@@ -1,11 +1,17 @@
 "use client";
+
 import { createContext, useContext, useEffect, useState } from "react";
-import { onAuthStateChanged, signOut } from "firebase/auth";
-import { auth } from "../lib/firebaseConfig";
+import {
+  onAuthStateChanged,
+  signOut,
+  setPersistence,
+  browserLocalPersistence,
+} from "firebase/auth";
 import { doc, getDoc } from "firebase/firestore";
+import { auth } from "../lib/firebaseConfig";
 import { db } from "../lib/firebaseConfig";
 
-// Initial context shape
+// Auth context structure
 const AuthContext = createContext({
   user: null,
   isAdmin: false,
@@ -19,47 +25,55 @@ export const AuthProvider = ({ children }) => {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    const unsubscribe = onAuthStateChanged(auth, async (currentUser) => {
-      if (currentUser) {
-        try {
-          const userRef = doc(db, "users", currentUser.uid);
-          const userSnap = await getDoc(userRef);
+    let unsubscribe;
 
-          if (userSnap.exists()) {
-            const firestoreUser = userSnap.data();
+    const initializeAuth = async () => {
+      try {
+        await setPersistence(auth, browserLocalPersistence);
 
-            // Merge Firebase Auth user and Firestore user data
-            setUser({
-              ...currentUser,
-              ...firestoreUser,
-            });
+        unsubscribe = onAuthStateChanged(auth, async (currentUser) => {
+          if (currentUser) {
+            try {
+              const userRef = doc(db, "users", currentUser.uid);
+              const userSnap = await getDoc(userRef);
 
-            setIsAdmin(firestoreUser.isAdmin === true);
-            const theme = firestoreUser.theme || "theme-light";
-            document.documentElement.classList.remove(
-              "theme-light",
-              "theme-dark",
-              "theme-vibrant"
-            );
-            document.documentElement.classList.add(theme);
+              if (userSnap.exists()) {
+                const firestoreUser = userSnap.data();
+                const mergedUser = { ...currentUser, ...firestoreUser };
+                setUser(mergedUser);
+                setIsAdmin(firestoreUser.isAdmin === true);
+
+                const theme = firestoreUser.theme || "theme-blue-light";
+                document.body.className = theme;
+                localStorage.setItem("theme", theme);
+              } else {
+                console.warn("User document not found.");
+                setUser(currentUser);
+                setIsAdmin(false);
+              }
+            } catch (error) {
+              console.error("Failed to load user data:", error);
+              setUser(currentUser);
+              setIsAdmin(false);
+            }
           } else {
-            console.warn("User document not found in Firestore.");
-            setUser(currentUser);
+            setUser(null);
             setIsAdmin(false);
           }
-        } catch (error) {
-          console.error("Error fetching user data:", error);
-          setUser(currentUser);
-          setIsAdmin(false);
-        }
-      } else {
-        setUser(null);
-        setIsAdmin(false);
-      }
-      setLoading(false);
-    });
 
-    return () => unsubscribe();
+          setLoading(false);
+        });
+      } catch (err) {
+        console.error("Persistence error:", err);
+        setLoading(false);
+      }
+    };
+
+    initializeAuth();
+
+    return () => {
+      if (unsubscribe) unsubscribe();
+    };
   }, []);
 
   const logout = async () => {
@@ -75,7 +89,4 @@ export const AuthProvider = ({ children }) => {
   );
 };
 
-// Custom hook for consuming the auth context
-export const useAuth = () => {
-  return useContext(AuthContext);
-};
+export const useAuth = () => useContext(AuthContext);

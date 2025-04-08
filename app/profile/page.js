@@ -9,10 +9,18 @@ import { FaPencilAlt } from "react-icons/fa";
 import Modal from "../../components/Modal";
 import avatarOptions from "@/data/avatarList.js";
 
+// Theme options using updated theme names
 const themes = [
-  { name: "Light", value: "theme-light" },
-  { name: "Dark", value: "theme-dark" },
-  { name: "Vibrant", value: "theme-vibrant" },
+  { name: "Blue (Light)", value: "theme-blue-light" },
+  { name: "Blue (Dark)", value: "theme-blue-dark" },
+  { name: "Sunset (Light)", value: "theme-orange-light" },
+  { name: "Sunset (Dark)", value: "theme-orange-dark" },
+  { name: "Forest (Light)", value: "theme-green-light" },
+  { name: "Forest (Dark)", value: "theme-green-dark" },
+  { name: "Lavender (Light)", value: "theme-purple-light" },
+  { name: "Lavender (Dark)", value: "theme-purple-dark" },
+  { name: "Gold (Light)", value: "theme-gold-light" },
+  { name: "Gold (Dark)", value: "theme-gold-dark" },
 ];
 
 export default function ProfilePage() {
@@ -29,7 +37,7 @@ export default function ProfilePage() {
   useEffect(() => {
     if (user) {
       const theme =
-        localStorage.getItem("theme") || user.theme || "theme-light";
+        localStorage.getItem("theme") || user.theme || "theme-blue-light";
       const firstName =
         localStorage.getItem("firstName") || user.firstName || "";
       const lastName = localStorage.getItem("lastName") || user.lastName || "";
@@ -41,12 +49,7 @@ export default function ProfilePage() {
         profilePicture,
         theme,
       });
-      document.body.classList.remove(
-        "theme-light",
-        "theme-dark",
-        "theme-vibrant"
-      );
-      document.body.classList.add(theme);
+      document.body.className = theme;
       localStorage.setItem("theme", theme);
     }
   }, [user]);
@@ -56,12 +59,7 @@ export default function ProfilePage() {
     setForm((prev) => ({ ...prev, [name]: value }));
 
     if (name === "theme") {
-      document.body.classList.remove(
-        "theme-light",
-        "theme-dark",
-        "theme-vibrant"
-      );
-      document.body.classList.add(value);
+      document.body.className = value;
       localStorage.setItem("theme", value);
       handleSave("theme", value);
     }
@@ -133,14 +131,14 @@ export default function ProfilePage() {
           />
           <FaPencilAlt
             onClick={() => setShowAvatarModal(true)}
-            className="absolute bottom-0 right-[30%] text-white bg-blue-600 rounded-full p-1 cursor-pointer"
+            className="absolute bottom-0 right-[30%] text-white bg-[var(--accent-color)] rounded-full p-1 cursor-pointer"
           />
         </div>
 
         <div className="space-y-4">
           <div>
             <label className="block font-medium">Email</label>
-            <p className="bg-gray-100 dark:bg-gray-800 rounded px-3 py-2">
+            <p className="bg-[var(--input-bg)] text-[var(--input-text)] rounded px-3 py-2">
               {user.email}
             </p>
           </div>
@@ -161,25 +159,25 @@ export default function ProfilePage() {
                     value={form.firstName}
                     onChange={handleChange}
                     placeholder="First Name"
-                    className="w-1/2 p-2 border rounded-lg"
+                    className="w-1/2 p-2 border rounded-lg bg-[var(--input-bg)] text-[var(--input-text)]"
                   />
                   <input
                     name="lastName"
                     value={form.lastName}
                     onChange={handleChange}
                     placeholder="Last Name"
-                    className="w-1/2 p-2 border rounded-lg"
+                    className="w-1/2 p-2 border rounded-lg bg-[var(--input-bg)] text-[var(--input-text)]"
                   />
                 </div>
                 <button
                   onClick={() => handleSave("name")}
-                  className="px-3 bg-blue-600 text-white rounded-lg"
+                  className="px-3 py-1 bg-[var(--accent-color)] text-white rounded-lg"
                 >
                   Save
                 </button>
               </div>
             ) : (
-              <p className="bg-gray-100 dark:bg-gray-800 rounded px-3 py-2">
+              <p className="bg-[var(--input-bg)] text-[var(--input-text)] rounded px-3 py-2">
                 {form.firstName} {form.lastName}
               </p>
             )}
@@ -191,10 +189,14 @@ export default function ProfilePage() {
               name="theme"
               value={form.theme}
               onChange={handleChange}
-              className="w-full p-2 border rounded-lg"
+              className="w-full p-2 border rounded-lg bg-[var(--input-bg)] text-[var(--input-text)]"
             >
               {themes.map((t) => (
-                <option key={t.value} value={t.value}>
+                <option
+                  key={t.value}
+                  value={t.value}
+                  className="text-[var(--input-text)]"
+                >
                   {t.name}
                 </option>
               ))}
@@ -228,7 +230,7 @@ export default function ProfilePage() {
                     width={64}
                     height={64}
                     onClick={() => handleSave("profilePicture", avatarUrl)}
-                    className="rounded-full border-2 border-transparent hover:border-blue-500 cursor-pointer"
+                    className="rounded-full border-2 border-transparent hover:border-[var(--accent-color)] cursor-pointer"
                   />
                 );
               })}

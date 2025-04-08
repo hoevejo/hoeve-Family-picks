@@ -15,7 +15,7 @@ export default function Leaderboard() {
 
   useEffect(() => {
     const fetchConfig = async () => {
-      const configDoc = await getDoc(doc(db, "config", "predictionSettings"));
+      const configDoc = await getDoc(doc(db, "config", "config"));
       if (configDoc.exists()) {
         const config = configDoc.data();
         setActiveTab(config.seasonType);
@@ -34,13 +34,32 @@ export default function Leaderboard() {
 
         const leaderboardRef = collection(db, refPath);
         const snapshot = await getDocs(leaderboardRef);
-        const data = snapshot.docs.map((doc) => ({
+        const leaderboardData = snapshot.docs.map((doc) => ({
           id: doc.id,
           ...doc.data(),
         }));
 
-        data.sort((a, b) => b.totalPoints - a.totalPoints);
-        setLeaderboard(data);
+        const usersSnapshot = await getDocs(collection(db, "users"));
+        const userMap = {};
+        usersSnapshot.forEach((userDoc) => {
+          const userData = userDoc.data();
+          userMap[userData.uid] = userData;
+        });
+
+        const enrichedData = leaderboardData.map((entry) => ({
+          ...entry,
+          profilePicture:
+            userMap[entry.uid]?.profilePicture || "/default-avatar.png",
+          firstName: userMap[entry.uid]?.firstName || entry.uid,
+        }));
+
+        if (activeTab === "All-Time") {
+          enrichedData.sort((a, b) => b.totalPoints - a.totalPoints);
+        } else {
+          enrichedData.sort((a, b) => a.currentRank - b.currentRank);
+        }
+
+        setLeaderboard(enrichedData);
       } catch (error) {
         console.error("Error fetching leaderboard:", error);
       } finally {
@@ -51,12 +70,9 @@ export default function Leaderboard() {
     fetchLeaderboard();
   }, [activeTab]);
 
-  const getRankDisplay = (index, points, list) => {
-    if (index === 0) return 1;
-    const prevPoints = list[index - 1].totalPoints;
-    return points === prevPoints
-      ? getRankDisplay(index - 1, prevPoints, list)
-      : index + 1;
+  const getRankDisplay = (index, entry) => {
+    if (activeTab === "All-Time") return index + 1;
+    return entry.currentRank || index + 1;
   };
 
   if (loading)
@@ -111,11 +127,7 @@ export default function Leaderboard() {
           <tbody className="divide-y divide-[var(--border-color)]">
             {leaderboard.map((entry, index) => {
               const isCurrentUser = user?.uid === entry.uid;
-              const rank = getRankDisplay(
-                index,
-                entry.totalPoints,
-                leaderboard
-              );
+              const rank = getRankDisplay(index, entry);
 
               return (
                 <tr
@@ -133,7 +145,7 @@ export default function Leaderboard() {
                   <td className="px-4 py-3 whitespace-nowrap border-l border-[var(--border-color)]">
                     <div className="flex items-center gap-1">
                       <Image
-                        src={entry.profilePicture || "/default-avatar.png"}
+                        src={entry.profilePicture}
                         alt={entry.firstName}
                         width={24}
                         height={24}

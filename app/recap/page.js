@@ -4,7 +4,7 @@
 
 import { useEffect, useState } from "react";
 import { db } from "../../lib/firebaseConfig";
-import { getDoc, doc } from "firebase/firestore";
+import { getDoc, doc, getDocs, collection } from "firebase/firestore";
 import Image from "next/image";
 
 export default function WeeklyRecapPage() {
@@ -15,7 +15,7 @@ export default function WeeklyRecapPage() {
   useEffect(() => {
     const fetchRecap = async () => {
       try {
-        const configDoc = await getDoc(doc(db, "config", "predictionSettings"));
+        const configDoc = await getDoc(doc(db, "config", "config"));
         if (!configDoc.exists()) return;
 
         const { recapWeek, seasonType, seasonYear } = configDoc.data();
@@ -28,7 +28,40 @@ export default function WeeklyRecapPage() {
         );
 
         if (recapDoc.exists()) {
-          setRecap(recapDoc.data());
+          const recapData = recapDoc.data();
+
+          const uids = new Set();
+          [
+            ...recapData.topScorers,
+            ...recapData.lowestScorers,
+            ...recapData.biggestRisers,
+            ...recapData.biggestFallers,
+            ...recapData.scores,
+          ].forEach((entry) => uids.add(entry.uid));
+
+          const usersSnapshot = await getDocs(collection(db, "users"));
+          const userMap = {};
+          usersSnapshot.forEach((userDoc) => {
+            const user = userDoc.data();
+            userMap[user.uid] = user;
+          });
+
+          const mapWithUserData = (entries) =>
+            entries.map((entry) => ({
+              ...entry,
+              fullName: userMap[entry.uid]?.fullName || entry.uid,
+              profilePicture:
+                userMap[entry.uid]?.profilePicture || "/default-avatar.png",
+            }));
+
+          setRecap({
+            ...recapData,
+            topScorers: mapWithUserData(recapData.topScorers),
+            lowestScorers: mapWithUserData(recapData.lowestScorers),
+            biggestRisers: mapWithUserData(recapData.biggestRisers),
+            biggestFallers: mapWithUserData(recapData.biggestFallers),
+            scores: mapWithUserData(recapData.scores),
+          });
         }
       } catch (err) {
         console.error("Error fetching recap:", err);
@@ -68,7 +101,7 @@ export default function WeeklyRecapPage() {
         {users.map((u) => (
           <li key={u.uid} className="flex items-center gap-3">
             <Image
-              src={u.profilePicture || "/default-avatar.png"}
+              src={u.profilePicture}
               alt={u.fullName}
               width={32}
               height={32}
@@ -108,7 +141,7 @@ export default function WeeklyRecapPage() {
             {recap.scores.map((u) => (
               <li key={u.uid} className="flex items-center gap-3">
                 <Image
-                  src={u.profilePicture || "/default-avatar.png"}
+                  src={u.profilePicture}
                   alt={u.fullName}
                   width={32}
                   height={32}
