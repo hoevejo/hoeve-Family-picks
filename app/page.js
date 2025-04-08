@@ -5,14 +5,18 @@ import { collection, getDocs, getDoc, doc } from "firebase/firestore";
 import { db } from "../lib/firebaseConfig";
 import Image from "next/image";
 import { useAuth } from "../context/AuthContext";
+import EnableNotificationsPopup from "@/components/EnableNotificationsPopup";
+import { subscribeToPushNotifications } from "@/lib/pushUtils";
 
 export default function Leaderboard() {
   const { user } = useAuth();
   const [leaderboard, setLeaderboard] = useState([]);
   const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState("Regular Season");
+  const [showPopup, setShowPopup] = useState(false);
   const tabs = ["Regular Season", "Postseason", "All-Time"];
 
+  // Fetch season type from config
   useEffect(() => {
     const fetchConfig = async () => {
       const configDoc = await getDoc(doc(db, "config", "config"));
@@ -24,6 +28,7 @@ export default function Leaderboard() {
     fetchConfig();
   }, []);
 
+  // Fetch leaderboard based on active tab
   useEffect(() => {
     const fetchLeaderboard = async () => {
       setLoading(true);
@@ -69,6 +74,14 @@ export default function Leaderboard() {
 
     fetchLeaderboard();
   }, [activeTab]);
+
+  // Show notification popup after login (Option B: Delay)
+  useEffect(() => {
+    if (user && user.notificationsEnabled !== true) {
+      const timer = setTimeout(() => setShowPopup(true), 5000);
+      return () => clearTimeout(timer);
+    }
+  }, [user]);
 
   const getRankDisplay = (index, entry) => {
     if (activeTab === "All-Time") return index + 1;
@@ -182,6 +195,17 @@ export default function Leaderboard() {
           </tbody>
         </table>
       </div>
+
+      {/* 📣 Push Notification Prompt */}
+      {showPopup && user && (
+        <EnableNotificationsPopup
+          onConfirm={async () => {
+            await subscribeToPushNotifications(user);
+            setShowPopup(false);
+          }}
+          onDismiss={() => setShowPopup(false)}
+        />
+      )}
     </div>
   );
 }

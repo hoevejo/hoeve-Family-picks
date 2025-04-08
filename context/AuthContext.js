@@ -39,7 +39,14 @@ export const AuthProvider = ({ children }) => {
 
               if (userSnap.exists()) {
                 const firestoreUser = userSnap.data();
-                const mergedUser = { ...currentUser, ...firestoreUser };
+
+                const mergedUser = {
+                  ...currentUser,
+                  ...firestoreUser,
+                  notificationsEnabled:
+                    firestoreUser.notificationsEnabled ?? false,
+                };
+
                 setUser(mergedUser);
                 setIsAdmin(firestoreUser.isAdmin === true);
 
