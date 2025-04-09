@@ -1,4 +1,3 @@
-// components/Modal.jsx
 "use client";
 import { useEffect } from "react";
 
@@ -12,20 +11,22 @@ export default function Modal({ onClose, children }) {
 
     return (
         <div
-            className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm"
+            className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm px-4"
             onClick={onClose}
         >
             <div
-                className="bg-white dark:bg-gray-800 rounded-lg shadow-lg p-6 max-w-md w-full mx-4 relative"
+                className="relative bg-white dark:bg-gray-800 rounded-lg shadow-xl p-6 max-w-md w-full max-h-[90vh] overflow-y-auto"
                 onClick={(e) => e.stopPropagation()}
             >
-                {/* Close button */}
+                {/* Close Button */}
                 <button
                     onClick={onClose}
-                    className="absolute top-2 right-2 text-gray-500 hover:text-gray-700 dark:hover:text-white"
+                    className="absolute top-2 right-2 text-xl text-gray-500 hover:text-gray-700 dark:text-gray-300 dark:hover:text-white"
+                    aria-label="Close"
                 >
                     &times;
                 </button>
+
                 {children}
             </div>
         </div>

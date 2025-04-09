@@ -9,7 +9,6 @@ import { FaPencilAlt } from "react-icons/fa";
 import Modal from "../../components/Modal";
 import avatarOptions from "@/data/avatarList.js";
 
-// Theme options using updated theme names
 const themes = [
   { name: "Blue (Light)", value: "theme-blue-light" },
   { name: "Blue (Dark)", value: "theme-blue-dark" },
@@ -31,8 +30,11 @@ export default function ProfilePage() {
     profilePicture: "",
     theme: "",
   });
+
   const [editingField, setEditingField] = useState(null);
   const [showAvatarModal, setShowAvatarModal] = useState(false);
+  const [avatarCategory, setAvatarCategory] = useState(null);
+  const [selectedAvatar, setSelectedAvatar] = useState(null);
 
   useEffect(() => {
     if (user) {
@@ -109,12 +111,20 @@ export default function ProfilePage() {
       toast.success("Profile updated!", { id: toastId });
       setEditingField(null);
       setShowAvatarModal(false);
+      setAvatarCategory(null);
+      setSelectedAvatar(null);
     } catch (error) {
       toast.error("Failed to update profile.", { id: toastId });
     }
   };
 
   if (!user) return null;
+
+  const filteredAvatars = avatarCategory
+    ? avatarOptions.filter((opt) => opt.category === avatarCategory)
+    : [];
+
+  const dicebearUrl = `https://api.dicebear.com/7.x/initials/png?seed=${form.firstName}%20${form.lastName}`;
 
   return (
     <div className="px-4 py-6 bg-[var(--bg-color)] text-[var(--text-color)] transition-colors flex justify-center">
@@ -192,11 +202,7 @@ export default function ProfilePage() {
               className="w-full p-2 border rounded-lg bg-[var(--input-bg)] text-[var(--input-text)]"
             >
               {themes.map((t) => (
-                <option
-                  key={t.value}
-                  value={t.value}
-                  className="text-[var(--input-text)]"
-                >
+                <option key={t.value} value={t.value}>
                   {t.name}
                 </option>
               ))}
@@ -214,27 +220,76 @@ export default function ProfilePage() {
       {showAvatarModal && (
         <Modal onClose={() => setShowAvatarModal(false)}>
           <div className="space-y-4 p-4">
-            <h2 className="text-xl font-bold">Select a New Avatar</h2>
-            <div className="grid grid-cols-3 gap-4">
-              {avatarOptions.map((option) => {
-                const isDicebear = option.value === "dicebear-default";
-                const avatarUrl = isDicebear
-                  ? `https://api.dicebear.com/7.x/initials/png?seed=${form.firstName}%20${form.lastName}`
-                  : option.value;
+            <h2 className="text-xl font-bold mb-2">Select a New Avatar</h2>
 
-                return (
-                  <Image
-                    key={option.value}
-                    src={avatarUrl}
-                    alt={option.label}
-                    width={64}
-                    height={64}
-                    onClick={() => handleSave("profilePicture", avatarUrl)}
-                    className="rounded-full border-2 border-transparent hover:border-[var(--accent-color)] cursor-pointer"
-                  />
-                );
-              })}
-            </div>
+            {avatarCategory ? (
+              <>
+                <button
+                  className="text-sm text-blue-500 underline mb-2"
+                  onClick={() => {
+                    setAvatarCategory(null);
+                    setSelectedAvatar(null);
+                  }}
+                >
+                  ← Back to Categories
+                </button>
+
+                <div className="grid grid-cols-3 gap-4">
+                  {filteredAvatars.map((option) => (
+                    <Image
+                      key={option.value}
+                      src={option.value}
+                      alt={option.label}
+                      width={64}
+                      height={64}
+                      onClick={() => setSelectedAvatar(option.value)}
+                      className={`rounded-full border-2 cursor-pointer ${
+                        selectedAvatar === option.value
+                          ? "border-[var(--accent-color)]"
+                          : "border-transparent hover:border-[var(--accent-color)]"
+                      }`}
+                    />
+                  ))}
+                </div>
+
+                <div className="pt-4 text-right">
+                  <button
+                    onClick={() =>
+                      selectedAvatar &&
+                      handleSave("profilePicture", selectedAvatar)
+                    }
+                    className="px-4 py-2 bg-[var(--accent-color)] text-white rounded"
+                  >
+                    Save
+                  </button>
+                </div>
+              </>
+            ) : (
+              <div className="space-y-4">
+                <Image
+                  src={dicebearUrl}
+                  alt="Default Avatar"
+                  width={64}
+                  height={64}
+                  onClick={() =>
+                    handleSave("profilePicture", "dicebear-default")
+                  }
+                  className="rounded-full border-2 border-transparent hover:border-[var(--accent-color)] cursor-pointer mx-auto"
+                />
+
+                <div className="flex justify-around mt-4">
+                  {["Animals", "Football", "Misc"].map((category) => (
+                    <button
+                      key={category}
+                      onClick={() => setAvatarCategory(category)}
+                      className="px-4 py-2 border rounded bg-[var(--accent-color)] text-white"
+                    >
+                      {category}
+                    </button>
+                  ))}
+                </div>
+              </div>
+            )}
           </div>
         </Modal>
       )}
