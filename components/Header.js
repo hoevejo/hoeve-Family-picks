@@ -3,6 +3,7 @@ import { useState, useRef, useEffect } from "react";
 import { useAuth } from "../context/AuthContext";
 import { useRouter } from "next/navigation";
 import { FaFootballBall } from "react-icons/fa";
+import { FiRefreshCw } from "react-icons/fi";
 import Image from "next/image";
 
 export default function Header() {
@@ -59,7 +60,7 @@ export default function Header() {
                     router.push("/profile");
                     setDropdownOpen(false);
                   }}
-                  className="w-full px-4 py-2 text-left hover:bg-[var(--accent-color)] hover:text-white transition-colors rounded-t-md"
+                  className="w-full px-4 py-2 text-left hover:bg-[var(--accent-color)] hover:text-white transition-colors"
                 >
                   Profile
                 </button>
@@ -75,6 +76,17 @@ export default function Header() {
                     Admin
                   </button>
                 )}
+
+                <button
+                  onClick={() => {
+                    window.location.reload();
+                    setDropdownOpen(false);
+                  }}
+                  className="w-full px-4 py-2 text-left flex items-center gap-2 hover:bg-[var(--accent-color)] hover:text-white transition-colors"
+                >
+                  <FiRefreshCw className="text-sm" />
+                  Refresh
+                </button>
 
                 <button
                   onClick={() => {
