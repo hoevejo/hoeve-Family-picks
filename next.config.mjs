@@ -1,15 +1,26 @@
+import withPWA from "next-pwa";
+
 /** @type {import('next').NextConfig} */
-const withPWA = require("next-pwa")({
+const nextConfig = {
+  reactStrictMode: true, // This is part of the general Next.js config
+  images: {
+    domains: ["api.dicebear.com"], // Only add image domains here
+  },
+  // Add any other general Next.js configuration here.
+};
+
+// Now, apply withPWA with the correct options
+const pwaConfig = withPWA({
   dest: "public",
   register: true,
   skipWaiting: true,
-  disable: process.env.NODE_ENV === "development", // Optional: disable PWA in dev
+  disable: process.env.NODE_ENV === "development",
 });
 
-const nextConfig = {
-  images: {
-    domains: ["api.dicebear.com"],
-  },
+// Assign to a variable first
+const config = {
+  ...nextConfig,
+  ...pwaConfig,
 };
 
-module.exports = withPWA(nextConfig);
+export default config; // Now export the config object

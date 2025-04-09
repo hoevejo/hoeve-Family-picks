@@ -1,5 +1,4 @@
 "use client";
-
 import { useEffect, useState } from "react";
 import { useAuth } from "../../context/AuthContext";
 import { signOut } from "firebase/auth";
@@ -23,7 +22,6 @@ export default function AdminDashboard() {
   const [fetching, setFetching] = useState(true);
   const [error, setError] = useState("");
 
-  // Fetch config from Firestore
   useEffect(() => {
     const fetchConfig = async () => {
       if (loading || !isAdmin) return;
@@ -104,9 +102,10 @@ export default function AdminDashboard() {
     router.push("/login");
   };
 
-  // Handle loading and access
   if (loading || fetching) {
-    return <p className="text-center mt-10">Loading...</p>;
+    return (
+      <p className="text-center mt-10 text-[var(--text-color)]">Loading...</p>
+    );
   }
 
   if (!user) {
@@ -125,51 +124,50 @@ export default function AdminDashboard() {
     );
   }
 
-  // ✅ Admin UI
   return (
-    <div className="min-h-screen flex flex-col items-center justify-center bg-gray-100 p-6">
-      <h1 className="text-3xl font-bold">Admin Dashboard</h1>
+    <div className="min-h-screen px-4 py-6 bg-[var(--bg-color)] text-[var(--text-color)] transition-colors flex flex-col items-center">
+      <h1 className="text-3xl font-bold text-center mb-6">Admin Dashboard</h1>
       {error && <p className="text-red-500 mt-2">{error}</p>}
 
       <form
         onSubmit={handleSubmit}
-        className="mt-6 bg-white p-6 shadow-md rounded-md w-full max-w-lg"
+        className="w-full max-w-lg bg-[var(--card-color)] border border-[var(--border-color)] rounded-xl shadow-md p-6 space-y-4"
       >
-        <h2 className="text-xl font-semibold mb-4">
+        <h2 className="text-xl font-semibold mb-2">
           Update Prediction Settings
         </h2>
 
-        <div className="mb-4">
+        <div>
           <label className="block font-medium">Week Number</label>
           <input
             type="number"
             name="week"
             value={config.week}
             onChange={handleChange}
-            className="w-full p-2 border rounded-md"
+            className="w-full p-2 rounded border bg-[var(--input-bg)] text-[var(--input-text)]"
             required
           />
         </div>
 
-        <div className="mb-4">
+        <div>
           <label className="block font-medium">Season Year</label>
           <input
             type="number"
             name="seasonYear"
             value={config.seasonYear}
             onChange={handleChange}
-            className="w-full p-2 border rounded-md"
+            className="w-full p-2 rounded border bg-[var(--input-bg)] text-[var(--input-text)]"
             required
           />
         </div>
 
-        <div className="mb-4">
+        <div>
           <label className="block font-medium">Season Type</label>
           <select
             name="seasonType"
             value={config.seasonType}
             onChange={handleChange}
-            className="w-full p-2 border rounded-md"
+            className="w-full p-2 rounded border bg-[var(--input-bg)] text-[var(--input-text)]"
             required
           >
             <option value="Regular Season">Regular Season</option>
@@ -177,47 +175,45 @@ export default function AdminDashboard() {
           </select>
         </div>
 
-        <div className="mb-4">
+        <div>
           <label className="block font-medium">Deadline</label>
           <input
             type="datetime-local"
             name="deadline"
             value={config.deadline}
             onChange={handleChange}
-            className="w-full p-2 border rounded-md"
+            className="w-full p-2 rounded border bg-[var(--input-bg)] text-[var(--input-text)]"
             required
           />
         </div>
 
-        <div className="mb-4">
+        <div>
           <label className="block font-medium">Recap Week</label>
           <input
             type="number"
             name="recapWeek"
             value={config.recapWeek}
             onChange={handleChange}
-            className="w-full p-2 border rounded-md"
+            className="w-full p-2 rounded border bg-[var(--input-bg)] text-[var(--input-text)]"
             required
           />
         </div>
 
         <button
           type="submit"
-          className="w-full bg-blue-500 text-white py-2 rounded-md hover:bg-blue-600"
           disabled={saving}
+          className="w-full px-4 py-2 bg-[var(--accent-color)] text-white rounded hover:bg-[var(--accent-hover)]"
         >
           {saving ? "Saving..." : "Save Changes"}
         </button>
       </form>
 
-      <div className="mt-6">
-        <button
-          onClick={handleLogout}
-          className="mt-4 px-4 py-2 bg-red-500 text-white rounded"
-        >
-          Logout
-        </button>
-      </div>
+      <button
+        onClick={handleLogout}
+        className="mt-6 px-4 py-2 bg-red-500 text-white rounded hover:bg-red-600"
+      >
+        Logout
+      </button>
     </div>
   );
 }

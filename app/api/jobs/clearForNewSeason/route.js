@@ -1,9 +1,9 @@
-import { resetForNewSeasonJob } from "@/jobs/newSeason";
+import { resetForNewSeason } from "@/jobs/newSeason";
 import { NextResponse } from "next/server";
 
 export async function GET() {
   try {
-    const result = await resetForNewSeasonJob();
+    const result = await resetForNewSeason();
     return NextResponse.json(result);
   } catch (error) {
     console.error("Error during clearForNewSeason:", error);

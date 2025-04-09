@@ -8,7 +8,7 @@ import {
   doc,
 } from "firebase-admin/firestore";
 import fetch from "node-fetch";
-import { sendNotification } from "../lib/sendNotification"; // ✅ Import the helper
+import { sendNotificationToUser } from "../lib/sendNotification"; // ✅ Import the helper
 
 export async function calculateWeeklyResults() {
   console.log("📊 Starting weekly results calculation...");
@@ -234,7 +234,7 @@ export async function calculateWeeklyResults() {
   });
 
   // 🔔 Send Push Notification
-  await sendNotification(
+  await sendNotificationToUser(
     "📊 Weekly Results Are In!",
     `Week ${week} results have been posted. Check out the leaderboard!`
   );

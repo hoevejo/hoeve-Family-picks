@@ -15,13 +15,19 @@ export default function Modal({ onClose, children }) {
             onClick={onClose}
         >
             <div
-                className="relative bg-white dark:bg-gray-800 rounded-lg shadow-xl p-6 max-w-md w-full max-h-[90vh] overflow-y-auto"
+                className="relative rounded-lg shadow-xl p-6 max-w-md w-full max-h-[90vh] overflow-y-auto"
+                style={{
+                    backgroundColor: "var(--card-color)",
+                    color: "var(--text-color)",
+                    border: "1px solid var(--border-color)",
+                }}
                 onClick={(e) => e.stopPropagation()}
             >
                 {/* Close Button */}
                 <button
                     onClick={onClose}
-                    className="absolute top-2 right-2 text-xl text-gray-500 hover:text-gray-700 dark:text-gray-300 dark:hover:text-white"
+                    className="absolute top-2 right-2 text-2xl hover:text-red-500"
+                    style={{ color: "var(--text-color)" }}
                     aria-label="Close"
                 >
                     &times;

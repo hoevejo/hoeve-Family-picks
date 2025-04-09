@@ -120,8 +120,11 @@ export default function ProfilePage() {
 
   if (!user) return null;
 
+  // Filter the avatars by the selected category and get the avatars
   const filteredAvatars = avatarCategory
-    ? avatarOptions.filter((opt) => opt.category === avatarCategory)
+    ? avatarOptions
+        .filter((opt) => opt.category === avatarCategory)
+        .flatMap((opt) => opt.avatars) // Extract the avatars array
     : [];
 
   const dicebearUrl = `https://api.dicebear.com/7.x/initials/png?seed=${form.firstName}%20${form.lastName}`;

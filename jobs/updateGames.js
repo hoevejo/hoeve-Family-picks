@@ -1,6 +1,6 @@
 import { db } from "@/lib/firebaseAdmin";
 import { doc, setDoc, Timestamp } from "firebase-admin/firestore";
-import { sendNotification } from "../lib/sendNotification"; // ✅ Import the helper
+import { sendNotificationToUser } from "../lib/sendNotification"; // ✅ Import the helper
 
 export async function fetchAndStoreGames() {
   const response = await fetch(
@@ -95,7 +95,7 @@ export async function fetchAndStoreGames() {
   const title = `📅 Week ${week} of ${formattedType} is here!`;
   const body = `Don't forget to make your picks before the deadline.`;
 
-  await sendNotification(title, body);
+  await sendNotificationToUser(title, body);
 
   return { success: true, count: games.length };
 }

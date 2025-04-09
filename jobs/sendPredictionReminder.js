@@ -1,5 +1,5 @@
 import { db } from "@/lib/firebaseAdmin";
-import { sendNotification } from "@/lib/sendNotification"; // your helper
+import { sendNotificationToUser } from "@/lib/sendNotification"; // your helper
 
 export async function sendPredictionReminder() {
   const configSnap = await db.doc("config/config").get();
@@ -19,7 +19,7 @@ export async function sendPredictionReminder() {
   const title = "⏰ Last Chance!";
   const body = `Get your predictions in for ${seasonType} Week ${week} before ${formattedTime} ET.`;
 
-  await sendNotification({ title, body });
+  await sendNotificationToUser({ title, body });
   console.log("📣 Sent prediction reminder.");
   return { success: true };
 }
