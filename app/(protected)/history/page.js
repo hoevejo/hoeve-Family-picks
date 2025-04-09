@@ -3,7 +3,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { db } from "../../lib/firebaseConfig";
+import { db } from "../../../lib/firebaseConfig";
 import {
   getDoc,
   doc,
@@ -13,7 +13,7 @@ import {
   where,
 } from "firebase/firestore";
 import Image from "next/image";
-import GamePredictionView from "../../components/GamePredictionView";
+import GamePredictionView from "../../../components/GamePredictionView";
 
 export default function HistoryPage() {
   const [history, setHistory] = useState(null);
