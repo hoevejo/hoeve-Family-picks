@@ -1,3 +1,5 @@
+export const runtime = "nodejs";
+
 import { fetchAndStoreGames } from "@/jobs/updateGames";
 
 export async function GET() {

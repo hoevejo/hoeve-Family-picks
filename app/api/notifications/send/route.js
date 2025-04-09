@@ -1,5 +1,7 @@
 // app/api/notifications/send/route.js
 import webpush from "web-push";
+export const runtime = "nodejs";
+
 import { db } from "@/lib/firebaseAdmin";
 import { getDocs, collectionGroup } from "firebase/firestore";
 

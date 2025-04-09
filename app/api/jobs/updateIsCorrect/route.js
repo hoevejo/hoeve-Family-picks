@@ -1,3 +1,5 @@
+export const runtime = "nodejs";
+
 import { updateIsCorrectJob } from "@/jobs/updateIsCorrect";
 
 export async function GET() {

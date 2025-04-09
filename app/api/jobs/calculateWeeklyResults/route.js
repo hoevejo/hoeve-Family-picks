@@ -1,3 +1,6 @@
+// ✅ Force Vercel to use Node.js runtime instead of Edge (Edge can't handle certain packages)
+export const runtime = "nodejs";
+
 import { calculateWeeklyResults } from "@/jobs/calculateWeeklyResults";
 
 export async function GET() {

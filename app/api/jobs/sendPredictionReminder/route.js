@@ -1,3 +1,5 @@
+export const runtime = "nodejs";
+
 import { sendPredictionReminder } from "@/jobs/sendPredictionReminder";
 
 export async function GET(req) {

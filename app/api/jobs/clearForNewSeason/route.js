@@ -1,3 +1,5 @@
+export const runtime = "nodejs";
+
 import { resetForNewSeason } from "@/jobs/newSeason";
 import { NextResponse } from "next/server";
 
