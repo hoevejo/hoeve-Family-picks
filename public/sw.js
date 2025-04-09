@@ -1,6 +1,7 @@
 const CACHE_NAME = "nfl-pickem-cache-v1";
 const urlsToCache = [
-  "/",
+  "/login",
+  "/register",
   "/offline", // Make sure this file exists
   "/icons/app-icon.png",
   "/manifest.json",
