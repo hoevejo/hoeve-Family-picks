@@ -70,8 +70,8 @@ export default function Register() {
         fullName,
         profilePicture: avatarUrl,
         totalPoints: 0,
-        currentRank: 0,
-        previousRank: 0,
+        currentRank: 1,
+        previousRank: 1,
         positionChange: 0,
       };
 
