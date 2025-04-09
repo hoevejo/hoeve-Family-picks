@@ -5,6 +5,7 @@ import { signOut } from "firebase/auth";
 import { auth, db } from "../../lib/firebaseConfig";
 import { doc, getDoc, updateDoc, Timestamp } from "firebase/firestore";
 import { useRouter } from "next/navigation";
+import { sendNotificationToUser } from "../../lib/sendNotification";
 
 export default function AdminDashboard() {
   const { user, isAdmin, loading } = useAuth();
@@ -101,7 +102,18 @@ export default function AdminDashboard() {
     await signOut(auth);
     router.push("/login");
   };
-
+  const handleTestNotification = async () => {
+    try {
+      await sendNotificationToUser(user.uid, {
+        title: "🔔 Test Notification",
+        body: "This is a test push notification from the Admin Dashboard.",
+      });
+      alert("Test notification sent!");
+    } catch (error) {
+      console.error("Error sending test notification:", error);
+      alert("Failed to send test notification.");
+    }
+  };
   if (loading || fetching) {
     return (
       <p className="text-center mt-10 text-[var(--text-color)]">Loading...</p>
@@ -207,7 +219,12 @@ export default function AdminDashboard() {
           {saving ? "Saving..." : "Save Changes"}
         </button>
       </form>
-
+      <button
+        onClick={handleTestNotification}
+        className="mt-4 px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600"
+      >
+        Send Test Notification
+      </button>
       <button
         onClick={handleLogout}
         className="mt-6 px-4 py-2 bg-red-500 text-white rounded hover:bg-red-600"
