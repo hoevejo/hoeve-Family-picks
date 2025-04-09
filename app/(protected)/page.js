@@ -4,7 +4,7 @@ import { useState, useEffect } from "react";
 import { collection, getDocs, getDoc, doc } from "firebase/firestore";
 import { db } from "../lib/firebaseConfig";
 import Image from "next/image";
-import { useAuth } from "../context/AuthContext";
+import { useAuth } from "../../context/AuthContext";
 import EnableNotificationsPopup from "@/components/EnableNotificationsPopup";
 import { subscribeToPushNotifications } from "@/lib/pushUtils";
 
