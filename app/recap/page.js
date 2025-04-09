@@ -3,7 +3,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { db } from "../../../lib/firebaseConfig";
+import { db } from "../../lib/firebaseConfig";
 import { getDoc, doc, getDocs, collection } from "firebase/firestore";
 import Image from "next/image";
 

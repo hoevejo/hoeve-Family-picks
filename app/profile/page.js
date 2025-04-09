@@ -1,12 +1,12 @@
 "use client";
 import { useState, useEffect } from "react";
-import { useAuth } from "../../../context/AuthContext";
+import { useAuth } from "../../context/AuthContext";
 import { doc, updateDoc } from "firebase/firestore";
-import { db } from "../../../lib/firebaseConfig";
+import { db } from "../../lib/firebaseConfig";
 import Image from "next/image";
 import toast from "react-hot-toast";
 import { FaPencilAlt } from "react-icons/fa";
-import Modal from "../../../components/Modal";
+import Modal from "../../components/Modal";
 import avatarOptions from "@/data/avatarList.js";
 
 const themes = [

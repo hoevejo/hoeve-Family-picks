@@ -1,11 +1,11 @@
 "use client";
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
-import { useAuth } from "../../../../context/AuthContext";
+import { useAuth } from "../../../context/AuthContext";
 import { signOut } from "firebase/auth";
-import { auth } from "../../../../lib/firebaseConfig";
+import { auth } from "../../../lib/firebaseConfig";
 import { doc, getDoc, updateDoc, Timestamp } from "firebase/firestore";
-import { db } from "../../../../lib/firebaseConfig";
+import { db } from "../../../lib/firebaseConfig";
 
 export default function AdminDashboard() {
   const { user, isAdmin, loading } = useAuth();

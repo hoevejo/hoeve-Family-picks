@@ -2,8 +2,8 @@
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { signInWithEmailAndPassword } from "firebase/auth";
-import { auth } from "../../../lib/firebaseConfig";
-import { useAuth } from "../../../context/AuthContext";
+import { auth } from "../../lib/firebaseConfig";
+import { useAuth } from "../../context/AuthContext";
 import toast from "react-hot-toast";
 
 export default function Login() {

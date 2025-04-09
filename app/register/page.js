@@ -3,9 +3,9 @@
 import { useState, useEffect } from "react";
 import { createUserWithEmailAndPassword, updateProfile } from "firebase/auth";
 import { useRouter } from "next/navigation";
-import { auth, db } from "../../../lib/firebaseConfig";
+import { auth, db } from "../../lib/firebaseConfig";
 import { doc, setDoc, serverTimestamp } from "firebase/firestore";
-import { useAuth } from "../../../context/AuthContext";
+import { useAuth } from "../../context/AuthContext";
 import toast from "react-hot-toast";
 
 export default function Register() {
@@ -70,8 +70,8 @@ export default function Register() {
         fullName,
         profilePicture: avatarUrl,
         totalPoints: 0,
-        currentRank: 1,
-        previousRank: 1,
+        currentRank: 0,
+        previousRank: 0,
         positionChange: 0,
       };
 

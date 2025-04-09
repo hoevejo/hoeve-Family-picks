@@ -14,8 +14,8 @@ import {
   query,
   where,
 } from "firebase/firestore";
-import { db } from "../../../lib/firebaseConfig";
-import { useAuth } from "../../../context/AuthContext";
+import { db } from "../../lib/firebaseConfig";
+import { useAuth } from "../../context/AuthContext";
 
 export default function WeeklyPicks() {
   const { user } = useAuth();
