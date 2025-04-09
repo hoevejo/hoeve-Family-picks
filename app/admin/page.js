@@ -104,7 +104,7 @@ export default function AdminDashboard() {
   };
   const handleTestNotification = async () => {
     try {
-      await sendNotificationToUser(user.uid, {
+      await sendNotificationToUser({
         title: "🔔 Test Notification",
         body: "This is a test push notification from the Admin Dashboard.",
       });
