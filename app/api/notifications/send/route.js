@@ -5,19 +5,15 @@ export const runtime = "nodejs";
 import { db } from "@/lib/firebaseAdmin";
 import { getDocs, collectionGroup } from "firebase/firestore";
 
-const vapidKeys = {
-  publicKey: process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY,
-  privateKey: process.env.VAPID_PRIVATE_KEY,
-};
-
+// Configure VAPID
 webpush.setVapidDetails(
   process.env.VAPID_SUBJECT,
-  vapidKeys.publicKey,
-  vapidKeys.privateKey
+  process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY,
+  process.env.VAPID_PRIVATE_KEY
 );
 
 export async function POST(request) {
-  // ✅ Secure the route with your secret
+  // ✅ Check for authorization header
   const authHeader = request.headers.get("authorization");
   const expectedSecret = `Bearer ${process.env.NOTIFICATION_SECRET}`;
 
@@ -26,22 +22,52 @@ export async function POST(request) {
   }
 
   try {
-    const { title, body } = await request.json();
+    // Accept title, body, and optional URL
+    const { title, body, url } = await request.json();
+    const payload = JSON.stringify({ title, body, url });
 
+    // Grab all subscriptions from all users
     const subsSnap = await getDocs(
       collectionGroup(db, "notificationSubscriptions")
     );
 
-    const sendPromises = subsSnap.docs.map((docSnap) => {
-      const sub = docSnap.data();
-      return webpush.sendNotification(sub, JSON.stringify({ title, body }));
+    let successCount = 0;
+    let errorCount = 0;
+
+    const sendPromises = subsSnap.docs.map(async (docSnap) => {
+      const subscription = docSnap.data();
+
+      try {
+        await webpush.sendNotification(subscription, payload);
+        successCount++;
+      } catch (err) {
+        console.error("❌ Failed to send push:", err.message);
+
+        // Clean up expired/invalid subscriptions
+        if (
+          err.statusCode === 410 || // Gone
+          err.statusCode === 404 || // Not found
+          err.message?.includes("unsubscribed") ||
+          err.message?.includes("invalid")
+        ) {
+          await docSnap.ref.delete();
+          console.log("🧹 Deleted expired subscription");
+        }
+
+        errorCount++;
+      }
     });
 
     await Promise.allSettled(sendPromises);
 
-    return Response.json({ success: true, sent: sendPromises.length });
+    return Response.json({
+      success: true,
+      sent: successCount,
+      failed: errorCount,
+      total: subsSnap.size,
+    });
   } catch (err) {
-    console.error("Push send error:", err);
+    console.error("⚠️ Notification error:", err);
     return Response.json(
       { success: false, error: err.message },
       { status: 500 }

@@ -104,16 +104,22 @@ export default function AdminDashboard() {
   };
   const handleTestNotification = async () => {
     try {
-      await sendNotificationToUser({
-        title: "🔔 Test Notification",
-        body: "This is a test push notification from the Admin Dashboard.",
+      const res = await fetch("/api/notifications/adminTest", {
+        method: "POST",
       });
-      alert("Test notification sent!");
+
+      if (res.ok) {
+        alert("Test notification sent!");
+      } else {
+        const data = await res.json();
+        throw new Error(data.error || "Unknown error");
+      }
     } catch (error) {
       console.error("Error sending test notification:", error);
       alert("Failed to send test notification.");
     }
   };
+
   if (loading || fetching) {
     return (
       <p className="text-center mt-10 text-[var(--text-color)]">Loading...</p>
