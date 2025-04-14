@@ -2,7 +2,7 @@ const CACHE_NAME = "nfl-pickem-cache-v1";
 const urlsToCache = [
   "/login",
   "/register",
-  "/offline.html", // Make sure this file exists
+  "/offline.html",
   "/icons/app-icon.png",
   "/manifest.json",
 ];
@@ -32,9 +32,17 @@ self.addEventListener("activate", (event) => {
   return self.clients.claim();
 });
 
-// 📦 Serve cached assets or fallback to network
+// 📦 Serve cached assets or fallback to network (exclude Firebase listen calls)
 self.addEventListener("fetch", (event) => {
   if (event.request.method !== "GET") return;
+
+  const ignored = [
+    "googleapis.com/google.firestore.v1.Firestore", // Firebase realtime listeners
+    "chrome-extension",
+    "sockjs",
+    "/sw.js",
+  ];
+  if (ignored.some((str) => event.request.url.includes(str))) return;
 
   event.respondWith(
     caches.match(event.request).then((response) => {
@@ -46,8 +54,13 @@ self.addEventListener("fetch", (event) => {
   );
 });
 
+// 🔔 Show push notifications
 self.addEventListener("push", (event) => {
+  console.log("📨 Push received by service worker!");
+
   const data = event.data?.json() || {};
+  console.log("Push payload:", data);
+
   const { title, body, url } = data;
 
   event.waitUntil(
@@ -66,15 +79,17 @@ self.addEventListener("notificationclick", (event) => {
   event.notification.close();
 
   event.waitUntil(
-    clients.matchAll({ type: "window" }).then((clientList) => {
-      for (const client of clientList) {
-        if (client.url === url && "focus" in client) {
-          return client.focus();
+    clients
+      .matchAll({ type: "window", includeUncontrolled: true })
+      .then((clientList) => {
+        for (const client of clientList) {
+          if (client.url === url && "focus" in client) {
+            return client.focus();
+          }
         }
-      }
-      if (clients.openWindow) {
-        return clients.openWindow(url);
-      }
-    })
+        if (clients.openWindow) {
+          return clients.openWindow(url);
+        }
+      })
   );
 });
