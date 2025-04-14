@@ -64,6 +64,15 @@ export default function Header() {
                 >
                   Profile
                 </button>
+                <button
+                  onClick={() => {
+                    router.push("/debug-push");
+                    setDropdownOpen(false);
+                  }}
+                  className="w-full px-4 py-2 text-left hover:bg-[var(--accent-color)] hover:text-white transition-colors"
+                >
+                  Push
+                </button>
 
                 {isAdmin && (
                   <button
