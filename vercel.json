@@ -1,0 +1,34 @@
+{
+  "cron": [
+    {
+      "path": "/api/jobs/fetchGames",
+      "schedule": "0 10 * * 3",
+      "enabled": true
+    },
+    {
+      "path": "/api/jobs/updateIsCorrect",
+      "schedule": "45 3 * * 5",
+      "enabled": true
+    },
+    {
+      "path": "/api/jobs/updateIsCorrect",
+      "schedule": "30 20 * * 0",
+      "enabled": true
+    },
+    {
+      "path": "/api/jobs/updateIsCorrect",
+      "schedule": "45 23 * * 0",
+      "enabled": true
+    },
+    {
+      "path": "/api/jobs/updateIsCorrect",
+      "schedule": "45 3 * * 1",
+      "enabled": true
+    },
+    {
+      "path": "/api/jobs/calculateWeeklyResults",
+      "schedule": "0 7 * * 2",
+      "enabled": true
+    }
+  ]
+}
