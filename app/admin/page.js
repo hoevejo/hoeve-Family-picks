@@ -5,7 +5,6 @@ import { signOut } from "firebase/auth";
 import { auth, db } from "../../lib/firebaseConfig";
 import { doc, getDoc, updateDoc, Timestamp } from "firebase/firestore";
 import { useRouter } from "next/navigation";
-import { sendNotificationToUser } from "../../lib/sendNotification";
 
 export default function AdminDashboard() {
   const { user, isAdmin, loading } = useAuth();
@@ -98,10 +97,6 @@ export default function AdminDashboard() {
     }
   };
 
-  const handleLogout = async () => {
-    await signOut(auth);
-    router.push("/login");
-  };
   const handleTestNotification = async () => {
     try {
       const res = await fetch("/api/notifications/adminTest", {
@@ -118,6 +113,34 @@ export default function AdminDashboard() {
       console.error("Error sending test notification:", error);
       alert("Failed to send test notification.");
     }
+  };
+
+  const handleResetSeason = async () => {
+    const confirmed = confirm(
+      "Are you sure you want to clear and archive the current season?\n\nThis will delete all picks, games, and weekly recaps. It cannot be undone."
+    );
+    if (!confirmed) return;
+
+    try {
+      const res = await fetch("/api/jobs/clearForNewSeason", {
+        method: "GET",
+      });
+
+      if (res.ok) {
+        alert("✅ Season cleared and archived!");
+      } else {
+        const data = await res.json();
+        throw new Error(data.error || "Unknown error");
+      }
+    } catch (error) {
+      console.error("Error resetting season:", error);
+      alert("❌ Failed to reset season. See console for details.");
+    }
+  };
+
+  const handleLogout = async () => {
+    await signOut(auth);
+    router.push("/login");
   };
 
   if (loading || fetching) {
@@ -225,12 +248,21 @@ export default function AdminDashboard() {
           {saving ? "Saving..." : "Save Changes"}
         </button>
       </form>
+
       <button
         onClick={handleTestNotification}
         className="mt-4 px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600"
       >
         Send Test Notification
       </button>
+
+      <button
+        onClick={handleResetSeason}
+        className="mt-4 px-4 py-2 bg-yellow-500 text-white rounded hover:bg-yellow-600"
+      >
+        🧹 Clear & Archive Season
+      </button>
+
       <button
         onClick={handleLogout}
         className="mt-6 px-4 py-2 bg-red-500 text-white rounded hover:bg-red-600"
