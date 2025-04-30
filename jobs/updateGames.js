@@ -13,6 +13,13 @@ export async function fetchAndStoreGames() {
   const seasonYear = data.season.year;
   const seasonType = data.season.type === 3 ? "Postseason" : "Regular";
 
+  if (seasonTypeCode === 1) {
+    return {
+      success: false,
+      message: "Preseason detected. Skipping fetch.",
+    };
+  }
+
   // 🛑 Stop if the season is over
   const leagueEndDate = new Date(data.leagues?.[0]?.season?.endDate);
   const now = new Date();

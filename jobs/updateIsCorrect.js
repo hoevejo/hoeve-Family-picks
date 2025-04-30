@@ -30,15 +30,24 @@ export async function updateIsCorrectJob() {
     const gameId = event.id;
     const fullGameId = `${gameIdPrefix}-${gameId}`;
 
-    // Update the winner in games
+    // 🧠 Check if game already has a result
     const gameRef = db.doc(`games/${fullGameId}`);
+    const gameSnap = await gameRef.get();
+    if (!gameSnap.exists) continue;
+
+    const gameData = gameSnap.data();
+    if (gameData.hasResult) continue; // ✅ Skip already updated games
+
+    // 📝 Update the game document
     await gameRef.update({
       winnerId,
       status: "completed",
+      hasResult: true,
+      resultUpdatedAt: new Date().toISOString(),
     });
     updatedGames++;
 
-    // Update related picks
+    // 🎯 Update user picks for this game
     const picksSnap = await db
       .collection("picks")
       .where("seasonYear", "==", seasonYear)
@@ -48,15 +57,26 @@ export async function updateIsCorrectJob() {
 
     for (const pickDoc of picksSnap.docs) {
       const prediction = pickDoc.data().predictions?.[fullGameId];
-      if (!prediction || prediction.isCorrect !== null) continue;
+
+      if (
+        !prediction ||
+        (prediction.isCorrect !== null && prediction.isCorrect !== undefined)
+      ) {
+        continue;
+      }
 
       const isCorrect = prediction.teamId === winnerId;
+
       await db.doc(`picks/${pickDoc.id}`).update({
         [`predictions.${fullGameId}.isCorrect`]: isCorrect,
       });
       updatedPicks++;
     }
   }
+
+  console.log(
+    `✅ updateIsCorrect finished. Games updated: ${updatedGames}, Picks updated: ${updatedPicks}`
+  );
 
   return {
     success: true,

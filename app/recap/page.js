@@ -1,5 +1,3 @@
-// /app/recap/page.js
-
 "use client";
 
 import { useEffect, useState } from "react";
@@ -73,6 +71,9 @@ export default function WeeklyRecapPage() {
     fetchRecap();
   }, []);
 
+  const formatSeasonType = (type) =>
+    type === "Regular" ? "Regular Season" : "Postseason";
+
   if (loading)
     return (
       <p className="text-center mt-6 text-[var(--text-color)]">
@@ -91,6 +92,11 @@ export default function WeeklyRecapPage() {
     return (
       <p className="text-center mt-6 text-red-500">No recap data found.</p>
     );
+
+  const avgScore = (
+    (recap.scores?.reduce((sum, u) => sum + (u.score || 0), 0) || 0) /
+    (recap.scores?.length || 1)
+  ).toFixed(2);
 
   const Section = ({ title, users }) => (
     <div className="bg-[var(--card-color)] border border-[var(--border-color)] rounded-xl p-4 mb-4 shadow">
@@ -124,7 +130,7 @@ export default function WeeklyRecapPage() {
   return (
     <div className="min-h-screen px-4 py-6 bg-[var(--bg-color)] text-[var(--text-color)] transition-colors">
       <h1 className="text-3xl font-bold text-center mb-6">
-        📝 Week {recap.week} Recap ({recap.seasonType})
+        📝 Week {recap.week} Recap ({formatSeasonType(recap.seasonType)})
       </h1>
 
       <div className="max-w-3xl mx-auto space-y-6">
@@ -138,7 +144,7 @@ export default function WeeklyRecapPage() {
             📊 All Scores
           </h2>
           <ul className="space-y-2">
-            {recap.scores.map((u) => (
+            {recap.scores?.map((u) => (
               <li key={u.uid} className="flex items-center gap-3">
                 <Image
                   src={u.profilePicture}
@@ -156,6 +162,9 @@ export default function WeeklyRecapPage() {
               </li>
             ))}
           </ul>
+          <p className="text-center text-sm text-[var(--text-color)] mt-4">
+            {recap.scores?.length || 0} participants — Avg Score: {avgScore}
+          </p>
         </div>
       </div>
     </div>

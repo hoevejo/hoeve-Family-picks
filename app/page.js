@@ -22,7 +22,10 @@ export default function Leaderboard() {
       const configDoc = await getDoc(doc(db, "config", "config"));
       if (configDoc.exists()) {
         const config = configDoc.data();
-        setActiveTab(config.seasonType);
+        const type = config.seasonType;
+        if (type === "Regular") setActiveTab("Regular Season");
+        else if (type === "Postseason") setActiveTab("Postseason");
+        else setActiveTab("All-Time"); // fallback or manually set for future use
       }
     };
     fetchConfig();
@@ -61,7 +64,11 @@ export default function Leaderboard() {
         if (activeTab === "All-Time") {
           enrichedData.sort((a, b) => b.totalPoints - a.totalPoints);
         } else {
-          enrichedData.sort((a, b) => a.currentRank - b.currentRank);
+          enrichedData.sort((a, b) => {
+            const rankA = a.currentRank === 0 ? Infinity : a.currentRank;
+            const rankB = b.currentRank === 0 ? Infinity : b.currentRank;
+            return rankA - rankB;
+          });
         }
 
         setLeaderboard(enrichedData);

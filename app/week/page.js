@@ -110,7 +110,9 @@ export default function WeeklyPicks() {
   }, [user, week, seasonType, seasonYear]);
 
   useEffect(() => {
-    if (!isDeadlinePassed || !seasonYear || !seasonType || !week) return;
+    if (!deadline || !isDeadlinePassed || !seasonYear || !seasonType || !week)
+      return;
+
     const fetchAllUserPicks = async () => {
       try {
         const picksQuery = query(
@@ -135,7 +137,7 @@ export default function WeeklyPicks() {
       }
     };
     fetchAllUserPicks();
-  }, [isDeadlinePassed, seasonYear, seasonType, week]);
+  }, [deadline, isDeadlinePassed, seasonYear, seasonType, week]);
 
   const handlePredictionChange = (gameId, teamId) => {
     setPredictions((prev) => ({
@@ -186,7 +188,17 @@ export default function WeeklyPicks() {
           <h1 className="text-2xl font-bold">
             Make Your Predictions ({seasonType} - Week {week})
           </h1>
-          <h2>Deadline: {deadline?.toLocaleString()}</h2>
+          <h2>
+            Deadline:{" "}
+            {deadline?.toLocaleString("en-US", {
+              weekday: "short",
+              month: "short",
+              day: "numeric",
+              hour: "numeric",
+              minute: "numeric",
+              timeZoneName: "short",
+            })}
+          </h2>
           <form onSubmit={handleSubmit}>
             {games.map((game) => (
               <div

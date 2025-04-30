@@ -1,17 +1,8 @@
-// /app/history/page.js
-
 "use client";
 
 import { useEffect, useState } from "react";
 import { db } from "../../lib/firebaseConfig";
-import {
-  getDoc,
-  doc,
-  collection,
-  getDocs,
-  query,
-  where,
-} from "firebase/firestore";
+import { getDoc, doc, collection, getDocs } from "firebase/firestore";
 import Image from "next/image";
 import GamePredictionView from "../../components/GamePredictionView";
 
@@ -20,8 +11,7 @@ export default function HistoryPage() {
   const [loading, setLoading] = useState(true);
   const [selectedYear, setSelectedYear] = useState(null);
   const [selectedWeek, setSelectedWeek] = useState(null);
-  const [selectedSeasonType, setSelectedSeasonType] =
-    useState("Regular Season");
+  const [selectedSeasonType, setSelectedSeasonType] = useState("Regular");
   const [availableYears, setAvailableYears] = useState([]);
   const [availableWeeks, setAvailableWeeks] = useState([]);
 
@@ -57,13 +47,12 @@ export default function HistoryPage() {
 
       setAvailableYears(years);
       setAvailableWeeks(weeks);
-      if (!weeks.includes(selectedWeek)) setSelectedWeek(weeks[0]);
     };
 
     if (selectedSeasonType && selectedYear !== null) {
       fetchAvailableHistory();
     }
-  }, [selectedSeasonType, selectedYear, selectedWeek]);
+  }, [selectedSeasonType, selectedYear]);
 
   useEffect(() => {
     const fetchHistoryData = async () => {
@@ -87,6 +76,9 @@ export default function HistoryPage() {
       fetchHistoryData();
     }
   }, [selectedYear, selectedWeek, selectedSeasonType]);
+
+  const formatSeasonType = (type) =>
+    type === "Regular" ? "Regular Season" : "Postseason";
 
   const Section = ({ title, users }) => (
     <div className="bg-[var(--card-color)] border border-[var(--border-color)] rounded-xl p-4 mb-4 shadow">
@@ -125,37 +117,42 @@ export default function HistoryPage() {
           <select
             value={selectedYear || ""}
             onChange={(e) => setSelectedYear(Number(e.target.value))}
-            className="p-2 border rounded-md"
+            className="p-2 rounded-md bg-[var(--card-color)] text-[var(--text-color)] border border-[var(--border-color)]"
           >
-            {availableYears.map((year) => (
-              <option key={year} value={year}>
-                {year}
-              </option>
-            ))}
+            {availableYears.length === 0 ? (
+              <option disabled>No years available</option>
+            ) : (
+              availableYears.map((year) => (
+                <option key={year} value={year}>
+                  {year}
+                </option>
+              ))
+            )}
           </select>
 
           <select
             value={selectedSeasonType}
-            onChange={(e) => {
-              setSelectedSeasonType(e.target.value);
-              setSelectedWeek(null);
-            }}
-            className="p-2 border rounded-md"
+            onChange={(e) => setSelectedSeasonType(e.target.value)}
+            className="p-2 rounded-md bg-[var(--card-color)] text-[var(--text-color)] border border-[var(--border-color)]"
           >
-            <option value="Regular Season">Regular Season</option>
+            <option value="Regular">Regular Season</option>
             <option value="Postseason">Postseason</option>
           </select>
 
           <select
             value={selectedWeek || ""}
             onChange={(e) => setSelectedWeek(Number(e.target.value))}
-            className="p-2 border rounded-md"
+            className="p-2 rounded-md bg-[var(--card-color)] text-[var(--text-color)] border border-[var(--border-color)]"
           >
-            {availableWeeks.map((week) => (
-              <option key={week} value={week}>
-                Week {week}
-              </option>
-            ))}
+            {availableWeeks.length === 0 ? (
+              <option disabled>No weeks available</option>
+            ) : (
+              availableWeeks.map((week) => (
+                <option key={week} value={week}>
+                  Week {week}
+                </option>
+              ))
+            )}
           </select>
         </div>
       </div>
@@ -169,7 +166,8 @@ export default function HistoryPage() {
       ) : (
         <div className="max-w-4xl mx-auto space-y-6">
           <h2 className="text-xl font-bold text-center mb-6">
-            {selectedSeasonType} - Week {selectedWeek} Recap ({selectedYear})
+            {formatSeasonType(selectedSeasonType)} – Week {selectedWeek} Recap (
+            {selectedYear})
           </h2>
           <Section title="🔥 Top Scorers" users={history.recap.topScorers} />
           <Section
