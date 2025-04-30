@@ -1,0 +1,28 @@
+{
+  "crons": [
+    {
+      "path": "/api/jobs/fetchGames",
+      "schedule": "0 10 * * 3"
+    },
+    {
+      "path": "/api/jobs/updateIsCorrect",
+      "schedule": "45 3 * * 5"
+    },
+    {
+      "path": "/api/jobs/updateIsCorrect",
+      "schedule": "30 20 * * 0"
+    },
+    {
+      "path": "/api/jobs/updateIsCorrect",
+      "schedule": "45 23 * * 0"
+    },
+    {
+      "path": "/api/jobs/updateIsCorrect",
+      "schedule": "45 3 * * 1"
+    },
+    {
+      "path": "/api/jobs/calculateWeeklyResults",
+      "schedule": "0 7 * * 2"
+    }
+  ]
+}
