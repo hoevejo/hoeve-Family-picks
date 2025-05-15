@@ -208,17 +208,17 @@ export default function WeeklyPicks() {
                 <h3 className="text-lg font-semibold text-center mb-3">
                   {game.name}
                 </h3>
-                <div className="flex justify-center space-x-6">
+                <div className="flex justify-center gap-6 flex-wrap">
                   {[game.homeTeam, game.awayTeam].map((team) => (
                     <label
                       key={team.id}
-                      className={`cursor-pointer flex flex-col items-center p-3 border-2 rounded-lg transition-all
-                        ${
-                          predictions[game.id]?.teamId === team.id
-                            ? "border-blue-500 bg-blue-100 shadow-md"
-                            : "border-[var(--border-color)] bg-[var(--card-color)] hover:bg-[var(--hover-color)]"
-                        }
-                      `}
+                      className={`w-40 h-48 cursor-pointer flex flex-col items-center justify-center text-center p-3 border-2 rounded-lg transition-all
+        ${
+          predictions[game.id]?.teamId === team.id
+            ? "border-blue-500 bg-blue-100 shadow-md"
+            : "border-[var(--border-color)] bg-[var(--card-color)] hover:bg-[var(--hover-color)]"
+        }
+      `}
                       onClick={() => handlePredictionChange(game.id, team.id)}
                     >
                       <input
@@ -233,15 +233,15 @@ export default function WeeklyPicks() {
                       />
                       <Image
                         src={team.logo}
-                        alt={team.name}
+                        alt={team.mascot}
                         width={64}
                         height={64}
                       />
-                      <span className="mt-2 text-lg font-semibold">
-                        {team.name}
+                      <span className="mt-2 text-lg font-semibold truncate w-full">
+                        {team.mascot || team.name}
                       </span>
                       <span className="text-sm text-gray-500">
-                        Record: {team.record || "N/A"}
+                        Record: {team.record?.trim() ? team.record : "0-0"}
                       </span>
                     </label>
                   ))}
