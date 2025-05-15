@@ -1,5 +1,5 @@
 import { db } from "@/lib/firebaseAdmin";
-import { doc, setDoc, Timestamp } from "firebase-admin/firestore";
+import { Timestamp } from "firebase-admin/firestore";
 import { sendNotificationToUser } from "../lib/sendNotification"; // ✅ Import the helper
 
 export async function fetchAndStoreGames() {
@@ -52,7 +52,7 @@ export async function fetchAndStoreGames() {
 
     const docId = `${seasonYear}-${seasonType.toLowerCase()}-week${week}-${id}`;
 
-    await setDoc(doc(db, "games", docId), {
+    await db.doc(`games/${docId}`).set({
       id,
       name,
       shortName,
@@ -83,7 +83,7 @@ export async function fetchAndStoreGames() {
   });
 
   // 🛠️ Update config
-  await setDoc(doc(db, "config", "config"), {
+  await db.doc("config/config").set({
     week,
     seasonType,
     seasonYear,
