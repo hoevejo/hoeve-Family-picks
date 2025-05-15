@@ -30,6 +30,9 @@ export default function WeeklyPicks() {
   const [isLoading, setIsLoading] = useState(true);
   const [allUserPicks, setAllUserPicks] = useState([]);
   const [userMap, setUserMap] = useState({});
+  const [gameOfTheWeekId, setGameOfTheWeekId] = useState(null);
+  const [wagerPick, setWagerPick] = useState(null); // { gameId, teamId, points }
+  const [userPoints, setUserPoints] = useState(0);
 
   useEffect(() => {
     const theme = localStorage.getItem("theme") || "theme-light";
@@ -50,6 +53,9 @@ export default function WeeklyPicks() {
           setWeek(configData.week);
           setSeasonYear(configData.seasonYear);
           setSeasonType(configData.seasonType);
+          if (configData.gameOfTheWeekId) {
+            setGameOfTheWeekId(configData.gameOfTheWeekId);
+          }
 
           if (configData.deadline && configData.deadline.seconds) {
             const deadlineDate = new Date(configData.deadline.seconds * 1000);
@@ -78,7 +84,15 @@ export default function WeeklyPicks() {
               game.seasonType === seasonType &&
               game.week === week
           );
-        setGames(filteredGames);
+        setGames(
+          filteredGames.sort(
+            (a, b) => new Date(a.date).getTime() - new Date(b.date).getTime()
+          )
+        );
+        const gotw = filteredGames.find((g) => g.id === gameOfTheWeekId);
+        if (gotw) {
+          setWagerPick({ gameId: gotw.id, teamId: null, points: 0 });
+        }
       } catch (error) {
         console.error("Error fetching games:", error);
       } finally {
@@ -86,7 +100,7 @@ export default function WeeklyPicks() {
       }
     };
     fetchGames();
-  }, [seasonYear, seasonType, week]);
+  }, [seasonYear, seasonType, week, gameOfTheWeekId]);
 
   useEffect(() => {
     if (!user || !week || !seasonYear) return;
@@ -108,6 +122,29 @@ export default function WeeklyPicks() {
     };
     fetchPredictions();
   }, [user, week, seasonType, seasonYear]);
+  useEffect(() => {
+    if (!user?.uid || !seasonType) return;
+
+    const fetchPoints = async () => {
+      try {
+        const leaderboardCollection =
+          seasonType === "Postseason" ? "leaderboardPostseason" : "leaderboard";
+
+        const pointsDoc = await getDoc(
+          doc(db, leaderboardCollection, user.uid)
+        );
+        if (pointsDoc.exists()) {
+          setUserPoints(pointsDoc.data().totalPoints || 0);
+        } else {
+          setUserPoints(0); // fallback if not found
+        }
+      } catch (error) {
+        console.error("Error fetching leaderboard points:", error);
+      }
+    };
+
+    fetchPoints();
+  }, [user?.uid, seasonType]);
 
   useEffect(() => {
     if (!deadline || !isDeadlinePassed || !seasonYear || !seasonType || !week)
@@ -154,6 +191,13 @@ export default function WeeklyPicks() {
       alert("Please make a prediction for every game before submitting.");
       return;
     }
+    if (
+      wagerPick?.teamId &&
+      (wagerPick.points > userPoints || wagerPick.points < 0)
+    ) {
+      alert(`Wager must be between 0 and ${userPoints} points.`);
+      return;
+    }
 
     try {
       const ref = doc(
@@ -167,6 +211,7 @@ export default function WeeklyPicks() {
         seasonYear,
         seasonType,
         week,
+        ...(wagerPick?.teamId && wagerPick.points > 0 && { wager: wagerPick }),
       });
       alert("Predictions submitted!");
       router.push("/");
@@ -200,54 +245,128 @@ export default function WeeklyPicks() {
             })}
           </h2>
           <form onSubmit={handleSubmit}>
-            {games.map((game) => (
-              <div
-                key={game.id}
-                className="my-4 p-4 bg-[var(--card-color)] shadow-md rounded-lg"
-              >
-                <h3 className="text-lg font-semibold text-center mb-3">
-                  {game.name}
-                </h3>
-                <div className="flex flex-row justify-center gap-4 sm:gap-6">
-                  {[game.homeTeam, game.awayTeam].map((team) => (
-                    <label
-                      key={team.id}
-                      className={`w-36 sm:w-40 h-44 sm:h-48 flex flex-col items-center justify-center text-center p-3 border-2 rounded-lg transition-all
+            {games
+              .filter((game) => game.id !== gameOfTheWeekId)
+              .map((game) => (
+                <div
+                  key={game.id}
+                  className="my-4 p-4 bg-[var(--card-color)] shadow-md rounded-lg"
+                >
+                  <h3 className="text-lg font-semibold text-center mb-3">
+                    {game.name}
+                  </h3>
+                  <div className="flex flex-row justify-center gap-4 sm:gap-6">
+                    {[game.homeTeam, game.awayTeam].map((team) => (
+                      <label
+                        key={team.id}
+                        className={`w-36 sm:w-40 h-44 sm:h-48 flex flex-col items-center justify-center text-center p-3 border-2 rounded-lg transition-all
                         ${
                           predictions[game.id]?.teamId === team.id
                             ? "border-blue-500 bg-blue-100 shadow-md"
                             : "border-[var(--border-color)] bg-[var(--card-color)] hover:bg-[var(--hover-color)]"
                         }
                     `}
-                      onClick={() => handlePredictionChange(game.id, team.id)}
+                        onClick={() => handlePredictionChange(game.id, team.id)}
+                      >
+                        <input
+                          type="radio"
+                          name={`prediction-${game.id}`}
+                          value={team.id}
+                          checked={predictions[game.id]?.teamId === team.id}
+                          onChange={() =>
+                            handlePredictionChange(game.id, team.id)
+                          }
+                          className="hidden"
+                        />
+                        <Image
+                          src={team.logo}
+                          alt={team.mascot}
+                          width={64}
+                          height={64}
+                        />
+                        <span className="mt-2 text-lg font-semibold truncate w-full">
+                          {team.mascot || team.name}
+                        </span>
+                        <span className="text-sm text-gray-500">
+                          Record: {team.record?.trim() ? team.record : "0-0"}
+                        </span>
+                      </label>
+                    ))}
+                  </div>
+                </div>
+              ))}
+            {gameOfTheWeekId && (
+              <div className="my-6 p-4 bg-yellow-100 rounded-lg shadow-md">
+                <h2 className="text-xl font-bold text-center mb-2">
+                  🔥 Game of the Week
+                </h2>
+                <p className="text-center text-sm mb-4">
+                  Choose a team and risk your points. Double if you&apos;re
+                  right — lose them if you&apos;re wrong.
+                </p>
+
+                {games
+                  .filter((g) => g.id === gameOfTheWeekId)
+                  .map((game) => (
+                    <div
+                      key={game.id}
+                      className="flex flex-row justify-center gap-4 sm:gap-6"
                     >
-                      <input
-                        type="radio"
-                        name={`prediction-${game.id}`}
-                        value={team.id}
-                        checked={predictions[game.id]?.teamId === team.id}
-                        onChange={() =>
-                          handlePredictionChange(game.id, team.id)
-                        }
-                        className="hidden"
-                      />
-                      <Image
-                        src={team.logo}
-                        alt={team.mascot}
-                        width={64}
-                        height={64}
-                      />
-                      <span className="mt-2 text-lg font-semibold truncate w-full">
-                        {team.mascot || team.name}
-                      </span>
-                      <span className="text-sm text-gray-500">
-                        Record: {team.record?.trim() ? team.record : "0-0"}
-                      </span>
-                    </label>
+                      {[game.homeTeam, game.awayTeam].map((team) => (
+                        <label
+                          key={team.id}
+                          className={`w-36 sm:w-40 h-44 sm:h-48 flex flex-col items-center justify-center text-center p-3 border-2 rounded-lg transition-all
+                ${
+                  wagerPick?.teamId === team.id
+                    ? "border-orange-500 bg-orange-100 shadow-md"
+                    : "border-[var(--border-color)] bg-[var(--card-color)] hover:bg-[var(--hover-color)]"
+                }`}
+                          onClick={() =>
+                            setWagerPick((prev) => ({
+                              ...prev,
+                              gameId: game.id,
+                              teamId: team.id,
+                            }))
+                          }
+                        >
+                          <Image
+                            src={team.logo}
+                            alt={team.mascot}
+                            width={64}
+                            height={64}
+                          />
+                          <span className="mt-2 text-lg font-semibold truncate w-full">
+                            {team.mascot || team.name}
+                          </span>
+                        </label>
+                      ))}
+                    </div>
                   ))}
+
+                <div className="mt-4 flex flex-col items-center">
+                  <label className="text-sm mb-1">Wager Amount</label>
+                  <input
+                    type="number"
+                    min={0}
+                    max={userPoints}
+                    className="w-32 p-2 border rounded text-center"
+                    value={wagerPick?.points || ""}
+                    onChange={(e) =>
+                      setWagerPick((prev) => ({
+                        ...prev,
+                        points: Math.min(
+                          parseInt(e.target.value) || 0,
+                          userPoints
+                        ),
+                      }))
+                    }
+                  />
+                  <p className="text-xs text-gray-600 mt-1">
+                    You have {userPoints} points available.
+                  </p>
                 </div>
               </div>
-            ))}
+            )}
 
             <button
               type="submit"
@@ -270,9 +389,13 @@ export default function WeeklyPicks() {
               >
                 <summary
                   className={`px-4 py-3 font-semibold cursor-pointer flex items-center justify-between gap-2
-                    ${game.winnerId ? "bg-green-100" : ""}`}
+    ${game.winnerId ? "bg-green-100" : ""}
+    ${game.id === gameOfTheWeekId ? "border-2 border-yellow-400" : ""}`}
                 >
                   <div className="flex items-center gap-2">
+                    {game.id === gameOfTheWeekId && (
+                      <span className="text-yellow-500">⭐</span>
+                    )}
                     <Image
                       src={game.homeTeam.logo}
                       alt={game.homeTeam.name}
@@ -290,6 +413,7 @@ export default function WeeklyPicks() {
                     <span>{game.awayTeam.abbreviation}</span>
                   </div>
                 </summary>
+
                 <div className="p-4 border-t grid grid-cols-1 sm:grid-cols-2 gap-6">
                   {[game.homeTeam, game.awayTeam].map((team) => {
                     const usersForTeam = allUserPicks
@@ -321,6 +445,14 @@ export default function WeeklyPicks() {
                                 ? "You"
                                 : userMap[entry.userId]?.firstName ||
                                   entry.userId}
+                              {game.id === gameOfTheWeekId &&
+                                entry.wager?.teamId === team.id &&
+                                entry.wager?.points > 0 && (
+                                  <span className="text-yellow-600">
+                                    {" "}
+                                    ({entry.wager.points} pts)
+                                  </span>
+                                )}
                               {entry.predictions[game.id].isCorrect ===
                                 true && (
                                 <span className="text-green-500">
