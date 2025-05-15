@@ -13,7 +13,7 @@ export async function fetchAndStoreGames() {
   const seasonYear = data.season.year;
   const seasonType = data.season.type === 3 ? "Postseason" : "Regular";
 
-  if (seasonTypeCode === 1) {
+  if (data.season.type === 1) {
     return {
       success: false,
       message: "Preseason detected. Skipping fetch.",
