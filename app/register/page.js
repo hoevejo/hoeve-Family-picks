@@ -65,22 +65,27 @@ export default function Register() {
         theme: "theme-blue-light",
       });
 
-      const leaderboardData = {
-        uid: newUser.uid,
+      const createLeaderboardDoc = (uid, fullName) => ({
+        uid,
         fullName,
-        profilePicture: avatarUrl,
         totalPoints: 0,
         currentRank: 0,
         previousRank: 0,
         positionChange: 0,
-      };
+      });
 
-      await setDoc(doc(db, "leaderboard", newUser.uid), leaderboardData);
-      await setDoc(
-        doc(db, "leaderboardPostseason", newUser.uid),
-        leaderboardData
-      );
-      await setDoc(doc(db, "leaderboardAllTime", newUser.uid), leaderboardData);
+      try {
+        const leaderboardDoc = createLeaderboardDoc(newUser.uid, fullName);
+
+        await Promise.all([
+          setDoc(doc(db, "leaderboard", newUser.uid), leaderboardDoc),
+          setDoc(doc(db, "leaderboardPostseason", newUser.uid), leaderboardDoc),
+          setDoc(doc(db, "leaderboardAllTime", newUser.uid), leaderboardDoc),
+        ]);
+      } catch (error) {
+        console.error("Error creating leaderboard documents:", error);
+        toast.error("Failed to set leaderboard data. Please try again.");
+      }
 
       toast.success("Account created! Redirecting...", { id: toastId });
       router.replace("/");

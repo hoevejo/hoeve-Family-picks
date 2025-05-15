@@ -84,6 +84,13 @@ export async function fetchAndStoreGames() {
     });
   });
 
+  // 🛠️ Select Game of the Week if not Week 1
+  let gameOfTheWeekId = null;
+  if (week !== 1 && games.length > 0) {
+    const randomGame = games[Math.floor(Math.random() * games.length)];
+    gameOfTheWeekId = randomGame.id;
+  }
+
   // 🛠️ Update config
   await db.doc("config/config").set({
     week,
@@ -93,6 +100,7 @@ export async function fetchAndStoreGames() {
     endOfSeason: Timestamp.fromDate(leagueEndDate),
     recapWeek: week - 1,
     lastUpdated: new Date().toISOString(),
+    ...(gameOfTheWeekId && { gameOfTheWeekId }), // only added if week !== 1
   });
 
   await Promise.all(gameWrites);

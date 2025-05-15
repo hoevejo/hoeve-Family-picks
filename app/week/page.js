@@ -91,7 +91,7 @@ export default function WeeklyPicks() {
         );
         const gotw = filteredGames.find((g) => g.id === gameOfTheWeekId);
         if (gotw) {
-          setWagerPick({ gameId: gotw.id, teamId: null, points: 0 });
+          setWagerPick({ gameId: gotw.id, teamId: null, points: 1 });
         }
       } catch (error) {
         console.error("Error fetching games:", error);
@@ -189,6 +189,10 @@ export default function WeeklyPicks() {
     const allPicked = games.every((game) => predictions[game.id]?.teamId);
     if (!allPicked) {
       alert("Please make a prediction for every game before submitting.");
+      return;
+    }
+    if (gameOfTheWeekId && (!wagerPick?.teamId || wagerPick.points <= 0)) {
+      alert("Please make your Game of the Week pick and enter a valid wager.");
       return;
     }
     if (
