@@ -208,17 +208,17 @@ export default function WeeklyPicks() {
                 <h3 className="text-lg font-semibold text-center mb-3">
                   {game.name}
                 </h3>
-                <div className="flex justify-center gap-6 flex-wrap">
+                <div className="flex flex-row justify-center gap-4 sm:gap-6">
                   {[game.homeTeam, game.awayTeam].map((team) => (
                     <label
                       key={team.id}
-                      className={`w-40 h-48 cursor-pointer flex flex-col items-center justify-center text-center p-3 border-2 rounded-lg transition-all
-        ${
-          predictions[game.id]?.teamId === team.id
-            ? "border-blue-500 bg-blue-100 shadow-md"
-            : "border-[var(--border-color)] bg-[var(--card-color)] hover:bg-[var(--hover-color)]"
-        }
-      `}
+                      className={`w-36 sm:w-40 h-44 sm:h-48 flex flex-col items-center justify-center text-center p-3 border-2 rounded-lg transition-all
+                        ${
+                          predictions[game.id]?.teamId === team.id
+                            ? "border-blue-500 bg-blue-100 shadow-md"
+                            : "border-[var(--border-color)] bg-[var(--card-color)] hover:bg-[var(--hover-color)]"
+                        }
+                    `}
                       onClick={() => handlePredictionChange(game.id, team.id)}
                     >
                       <input
