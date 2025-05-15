@@ -64,6 +64,7 @@ export async function fetchAndStoreGames() {
       homeTeam: {
         id: homeTeam.id,
         name: homeTeam.team.displayName,
+        mascot: homeTeam.team.name, // ✅ NEW
         abbreviation: homeTeam.team.abbreviation,
         score: Number(homeTeam.score),
         logo: homeTeam.team.logo,
@@ -72,6 +73,7 @@ export async function fetchAndStoreGames() {
       awayTeam: {
         id: awayTeam.id,
         name: awayTeam.team.displayName,
+        mascot: awayTeam.team.name, // ✅ NEW
         abbreviation: awayTeam.team.abbreviation,
         score: Number(awayTeam.score),
         logo: awayTeam.team.logo,
