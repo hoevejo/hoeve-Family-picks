@@ -1,9 +1,10 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, useMemo } from "react";
 import { db } from "../../lib/firebaseConfig";
 import { getDoc, doc, getDocs, collection } from "firebase/firestore";
 import Image from "next/image";
+import { Toaster, toast } from "react-hot-toast";
 
 export default function WeeklyRecapPage() {
   const [recap, setRecap] = useState(null);
@@ -62,6 +63,7 @@ export default function WeeklyRecapPage() {
           });
         }
       } catch (err) {
+        toast.error("Error fetching recap data. Please try again later.");
         console.error("Error fetching recap:", err);
       } finally {
         setLoading(false);
@@ -74,29 +76,13 @@ export default function WeeklyRecapPage() {
   const formatSeasonType = (type) =>
     type === "Regular" ? "Regular Season" : "Postseason";
 
-  if (loading)
+  const avgScore = useMemo(() => {
+    if (!recap?.scores) return 0;
     return (
-      <p className="text-center mt-6 text-[var(--text-color)]">
-        Loading recap...
-      </p>
-    );
-
-  if (recapWeek === 0)
-    return (
-      <p className="text-center mt-6 text-[var(--text-color)]">
-        No weekly recap yet — come back next week for results!
-      </p>
-    );
-
-  if (!recap)
-    return (
-      <p className="text-center mt-6 text-red-500">No recap data found.</p>
-    );
-
-  const avgScore = (
-    (recap.scores?.reduce((sum, u) => sum + (u.score || 0), 0) || 0) /
-    (recap.scores?.length || 1)
-  ).toFixed(2);
+      (recap.scores.reduce((sum, u) => sum + (u.score || 0), 0) || 0) /
+      (recap.scores?.length || 1)
+    ).toFixed(2);
+  }, [recap]);
 
   const Section = ({ title, users }) => (
     <div className="bg-[var(--card-color)] border border-[var(--border-color)] rounded-xl p-4 mb-4 shadow">
@@ -126,6 +112,25 @@ export default function WeeklyRecapPage() {
       </ul>
     </div>
   );
+
+  if (loading)
+    return (
+      <p className="text-center mt-6 text-[var(--text-color)]">
+        Loading recap...
+      </p>
+    );
+
+  if (recapWeek === 0)
+    return (
+      <p className="text-center mt-6 text-[var(--text-color)]">
+        No weekly recap yet — come back next week for results!
+      </p>
+    );
+
+  if (!recap)
+    return (
+      <p className="text-center mt-6 text-red-500">No recap data found.</p>
+    );
 
   return (
     <div className="min-h-screen px-4 py-6 bg-[var(--bg-color)] text-[var(--text-color)] transition-colors">

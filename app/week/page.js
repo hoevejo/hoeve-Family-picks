@@ -1,8 +1,6 @@
-// /app/weeklyPicks/page.js
-
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { useRouter } from "next/navigation";
 import Image from "next/image";
 import {
@@ -122,6 +120,7 @@ export default function WeeklyPicks() {
     };
     fetchPredictions();
   }, [user, week, seasonType, seasonYear]);
+
   useEffect(() => {
     if (!user?.uid || !seasonType) return;
 
@@ -393,8 +392,7 @@ export default function WeeklyPicks() {
               >
                 <summary
                   className={`px-4 py-3 font-semibold cursor-pointer flex items-center justify-between gap-2
-    ${game.winnerId ? "bg-green-100" : ""}
-    ${game.id === gameOfTheWeekId ? "border-2 border-yellow-400" : ""}`}
+    ${game.winnerId ? "bg-green-100" : ""}`}
                 >
                   <div className="flex items-center gap-2">
                     {game.id === gameOfTheWeekId && (
