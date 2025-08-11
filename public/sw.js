@@ -7,7 +7,7 @@ const urlsToCache = [
   "/manifest.json",
 ];
 
-// 🔄 Install and cache essential files
+// Install and cache essential files
 self.addEventListener("install", (event) => {
   event.waitUntil(
     caches.open(CACHE_NAME).then((cache) => {
@@ -16,7 +16,7 @@ self.addEventListener("install", (event) => {
   );
 });
 
-// 🚀 Activate and clean up old caches
+// Activate and clean up old caches
 self.addEventListener("activate", (event) => {
   event.waitUntil(
     caches.keys().then((cacheNames) =>
@@ -32,7 +32,7 @@ self.addEventListener("activate", (event) => {
   return self.clients.claim();
 });
 
-// 📦 Serve cached assets or fallback to network (exclude Firebase listen calls)
+// Fetch and serve cached assets or fallback to network
 self.addEventListener("fetch", (event) => {
   if (event.request.method !== "GET") return;
 
@@ -44,36 +44,62 @@ self.addEventListener("fetch", (event) => {
   ];
   if (ignored.some((str) => event.request.url.includes(str))) return;
 
-  event.respondWith(
-    caches.match(event.request).then((response) => {
-      return (
-        response ||
-        fetch(event.request).catch(() => caches.match("/offline.html"))
-      );
-    })
-  );
+  const cacheFirstUrls = [
+    "/offline.html",
+    "/icons/app-icon.png",
+    "/manifest.json",
+  ];
+  if (cacheFirstUrls.some((url) => event.request.url.includes(url))) {
+    event.respondWith(
+      caches
+        .match(event.request)
+        .then((response) => response || fetch(event.request))
+    );
+  } else {
+    event.respondWith(
+      caches.match(event.request).then((response) => {
+        return (
+          response ||
+          fetch(event.request).catch(() => caches.match("/offline.html"))
+        );
+      })
+    );
+  }
 });
 
-// 🔔 Show push notifications
+// Handle push notifications
 self.addEventListener("push", (event) => {
   console.log("📨 Push received by service worker!");
-
   const data = event.data?.json() || {};
   console.log("Push payload:", data);
 
   const { title, body, url } = data;
 
+  const options = {
+    body: body || "You've got a new update!",
+    icon: "/icons/app-icon.png",
+    badge: "/icons/app-icon.png",
+    data: { url: url || "/" },
+    actions: [
+      {
+        action: "view",
+        title: "View",
+        icon: "/icons/view-icon.png",
+      },
+      {
+        action: "dismiss",
+        title: "Dismiss",
+        icon: "/icons/dismiss-icon.png",
+      },
+    ],
+  };
+
   event.waitUntil(
-    self.registration.showNotification(title || "NFL Pick'em", {
-      body: body || "You've got a new update!",
-      icon: "/icons/app-icon.png",
-      badge: "/icons/app-icon.png",
-      data: { url: url || "/" },
-    })
+    self.registration.showNotification(title || "NFL Pick'em", options)
   );
 });
 
-// 🚪 Handle clicks on notifications
+// Handle notification click
 self.addEventListener("notificationclick", (event) => {
   const url = event.notification.data?.url || "/";
   event.notification.close();
@@ -92,4 +118,15 @@ self.addEventListener("notificationclick", (event) => {
         }
       })
   );
+});
+
+// Handle notification actions (View and Dismiss)
+self.addEventListener("notificationaction", (event) => {
+  if (event.action === "view") {
+    const url = event.notification.data?.url || "/";
+    event.notification.close();
+    event.waitUntil(clients.openWindow(url));
+  } else if (event.action === "dismiss") {
+    event.notification.close();
+  }
 });
