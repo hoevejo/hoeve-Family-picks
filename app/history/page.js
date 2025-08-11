@@ -1,10 +1,11 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, useMemo } from "react";
 import { db } from "../../lib/firebaseConfig";
 import { getDoc, doc, collection, getDocs } from "firebase/firestore";
 import Image from "next/image";
 import GamePredictionView from "../../components/GamePredictionView";
+import { toast } from "react-hot-toast";
 
 export default function HistoryPage() {
   const [history, setHistory] = useState(null);
@@ -30,23 +31,28 @@ export default function HistoryPage() {
 
   useEffect(() => {
     const fetchAvailableHistory = async () => {
-      const historySnapshot = await getDocs(collection(db, "history"));
-      const yearsSet = new Set();
-      const weeksSet = new Set();
+      try {
+        const historySnapshot = await getDocs(collection(db, "history"));
+        const yearsSet = new Set();
+        const weeksSet = new Set();
 
-      historySnapshot.forEach((doc) => {
-        const { seasonYear, week, seasonType } = doc.data();
-        if (seasonType === selectedSeasonType) {
-          yearsSet.add(seasonYear);
-          if (seasonYear === selectedYear) weeksSet.add(week);
-        }
-      });
+        historySnapshot.forEach((doc) => {
+          const { seasonYear, week, seasonType } = doc.data();
+          if (seasonType === selectedSeasonType) {
+            yearsSet.add(seasonYear);
+            if (seasonYear === selectedYear) weeksSet.add(week);
+          }
+        });
 
-      const years = Array.from(yearsSet).sort((a, b) => b - a);
-      const weeks = Array.from(weeksSet).sort((a, b) => a - b);
+        const years = Array.from(yearsSet).sort((a, b) => b - a);
+        const weeks = Array.from(weeksSet).sort((a, b) => a - b);
 
-      setAvailableYears(years);
-      setAvailableWeeks(weeks);
+        setAvailableYears(years);
+        setAvailableWeeks(weeks);
+      } catch (err) {
+        toast.error("Error fetching history years and weeks.");
+        console.error("Error fetching history:", err);
+      }
     };
 
     if (selectedSeasonType && selectedYear !== null) {
@@ -66,6 +72,7 @@ export default function HistoryPage() {
           setHistory(null);
         }
       } catch (err) {
+        toast.error("Error fetching history data. Please try again later.");
         console.error("Error fetching history:", err);
       } finally {
         setLoading(false);
@@ -79,6 +86,14 @@ export default function HistoryPage() {
 
   const formatSeasonType = (type) =>
     type === "Regular" ? "Regular Season" : "Postseason";
+
+  const avgScore = useMemo(() => {
+    if (!history?.recap?.scores) return 0;
+    return (
+      (history.recap.scores.reduce((sum, u) => sum + (u.score || 0), 0) || 0) /
+      (history.recap.scores?.length || 1)
+    ).toFixed(2);
+  }, [history]);
 
   const Section = ({ title, users }) => (
     <div className="bg-[var(--card-color)] border border-[var(--border-color)] rounded-xl p-4 mb-4 shadow">
