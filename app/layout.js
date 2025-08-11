@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect } from "react";
+import { useEffect, useMemo } from "react";
 import { useRouter, usePathname } from "next/navigation";
 import { AuthProvider, useAuth } from "../context/AuthContext";
 import Header from "../components/Header";
@@ -14,10 +14,13 @@ function ProtectedLayout({ children }) {
   const router = useRouter();
   const pathname = usePathname();
 
-  const authFreeRoutes = ["/login", "/register"];
+  // Use useMemo to optimize auth-free route checking
+  const authFreeRoutes = useMemo(() => ["/login", "/register"], []);
+
   const isAuthFree = authFreeRoutes.includes(pathname);
 
   useEffect(() => {
+    // Redirect if not loading, user is null, and not on an auth-free route
     if (!loading && user === null && !isAuthFree) {
       router.replace("/login");
     }
@@ -45,14 +48,17 @@ function ProtectedLayout({ children }) {
 
 export default function RootLayout({ children }) {
   useEffect(() => {
-    // ✅ Register Service Worker
+    // ✅ Register Service Worker if not already registered
     if ("serviceWorker" in navigator) {
+      if (navigator.serviceWorker.controller) return; // If already registered, skip
+
       navigator.serviceWorker
         .register("/sw.js")
         .then(() => console.log("Service Worker registered"))
-        .catch((err) =>
-          console.error("Service Worker registration failed:", err)
-        );
+        .catch((err) => {
+          console.error("Service Worker registration failed:", err);
+          toast.error("Service Worker registration failed.");
+        });
     }
   }, []);
 

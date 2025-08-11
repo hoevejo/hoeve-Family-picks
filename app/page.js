@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { collection, getDocs, getDoc, doc } from "firebase/firestore";
 import { db } from "../lib/firebaseConfig";
 import Image from "next/image";
@@ -14,7 +14,7 @@ export default function Leaderboard() {
   const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState("Regular Season");
   const [showPopup, setShowPopup] = useState(false);
-  const tabs = ["Regular Season", "Postseason", "All-Time"];
+  const tabs = useMemo(() => ["Regular Season", "Postseason", "All-Time"], []);
 
   // Fetch season type from config
   useEffect(() => {
@@ -167,8 +167,8 @@ export default function Leaderboard() {
                       <Image
                         src={entry.profilePicture}
                         alt={entry.firstName}
-                        width={24}
-                        height={24}
+                        width={32}
+                        height={32}
                         className="rounded-full object-cover"
                       />
                       <span className="font-medium">{entry.firstName}</span>
