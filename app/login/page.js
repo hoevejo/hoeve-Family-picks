@@ -18,11 +18,21 @@ export default function Login() {
     if (!loading && user) router.push("/");
   }, [user, loading, router]);
 
+  const validateEmail = (email) => {
+    const regex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    return regex.test(email);
+  };
+
   const handleLogin = async (e) => {
     e.preventDefault();
+
+    if (!validateEmail(email)) {
+      return toast.error("Please enter a valid email address.");
+    }
+
     setIsLoggingIn(true);
     const toastId = "login-toast";
-    toast.loading("Signing in...", { id: toastId });
+    toast.loading("Logging in...", { id: toastId });
 
     try {
       await signInWithEmailAndPassword(auth, email, password);
@@ -55,6 +65,7 @@ export default function Login() {
               value={email}
               onChange={(e) => setEmail(e.target.value)}
               required
+              aria-label="Email"
               className="w-full p-3 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
             />
             <input
@@ -63,6 +74,7 @@ export default function Login() {
               value={password}
               onChange={(e) => setPassword(e.target.value)}
               required
+              aria-label="Password"
               className="w-full p-3 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
             />
             <button

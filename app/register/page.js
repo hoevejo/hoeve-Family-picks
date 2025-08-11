@@ -27,14 +27,34 @@ export default function Register() {
   const handleChange = (e) =>
     setForm({ ...form, [e.target.name]: e.target.value });
 
+  const validateEmail = (email) => {
+    const regex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    return regex.test(email);
+  };
+
+  const validatePasswordStrength = (password) => {
+    const regex = /^(?=.*[A-Za-z])(?=.*\d)[A-Za-z\d]{8,}$/;
+    return regex.test(password);
+  };
+
   const handleSubmit = async (e) => {
     e.preventDefault();
     if (form.password !== form.confirmPassword)
       return toast.error("Passwords do not match!");
 
+    if (!validateEmail(form.email)) {
+      return toast.error("Please enter a valid email address.");
+    }
+
+    if (!validatePasswordStrength(form.password)) {
+      return toast.error(
+        "Password must be at least 8 characters long and contain both letters and numbers."
+      );
+    }
+
     setLoading(true);
     const toastId = "register-toast";
-    toast.loading("Creating account...", { id: toastId });
+    toast.loading("Creating your account...", { id: toastId });
 
     const fullName = `${form.firstName} ${form.lastName}`;
     const avatarUrl = `https://api.dicebear.com/7.x/initials/png?seed=${form.firstName}%20${form.lastName}`;
@@ -118,6 +138,7 @@ export default function Register() {
               value={form.firstName}
               onChange={handleChange}
               required
+              autoFocus
               className="w-full p-3 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
             />
             <input
@@ -164,7 +185,7 @@ export default function Register() {
               {loading && (
                 <span className="h-4 w-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
               )}
-              {loading ? "Registering..." : "Register"}
+              {loading ? "Creating your account..." : "Register"}
             </button>
           </form>
 
