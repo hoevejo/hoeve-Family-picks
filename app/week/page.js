@@ -496,10 +496,6 @@ export default function WeeklyPicks() {
                                       ({entry.wager.points} pts)
                                     </span>
                                   )}
-
-                                {/* keep these if you still want explicit labels */}
-                                {isCorrect === true && <span> (Correct)</span>}
-                                {isCorrect === false && <span> (Wrong)</span>}
                               </li>
                             );
                           })}
