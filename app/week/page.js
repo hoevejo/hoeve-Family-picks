@@ -390,29 +390,49 @@ export default function WeeklyPicks() {
                 key={game.id}
                 className="bg-[var(--card-color)] rounded shadow-md"
               >
-                <summary
-                  className={`px-4 py-3 font-semibold cursor-pointer flex items-center justify-between gap-2
-    ${game.winnerId ? "bg-green-100" : ""}`}
-                >
+                <summary className="px-4 py-3 font-semibold cursor-pointer flex items-center justify-between gap-2">
                   <div className="flex items-center gap-2">
                     {game.id === gameOfTheWeekId && (
                       <span className="text-yellow-500">⭐</span>
                     )}
+
                     <Image
                       src={game.homeTeam.logo}
                       alt={game.homeTeam.name}
                       width={20}
                       height={20}
                     />
-                    <span>{game.homeTeam.abbreviation}</span>
+                    <span
+                      className={
+                        game.winnerId
+                          ? game.winnerId === game.homeTeam.id
+                            ? "text-green-600"
+                            : "text-red-600"
+                          : ""
+                      }
+                    >
+                      {game.homeTeam.abbreviation}
+                    </span>
+
                     <span className="mx-1">vs</span>
+
                     <Image
                       src={game.awayTeam.logo}
                       alt={game.awayTeam.name}
                       width={20}
                       height={20}
                     />
-                    <span>{game.awayTeam.abbreviation}</span>
+                    <span
+                      className={
+                        game.winnerId
+                          ? game.winnerId === game.awayTeam.id
+                            ? "text-green-600"
+                            : "text-red-600"
+                          : ""
+                      }
+                    >
+                      {game.awayTeam.abbreviation}
+                    </span>
                   </div>
                 </summary>
 
@@ -429,6 +449,13 @@ export default function WeeklyPicks() {
                         return nameA.localeCompare(nameB);
                       });
 
+                    const teamColor =
+                      game.winnerId == null
+                        ? "" // no result yet
+                        : game.winnerId === team.id
+                        ? "text-green-600"
+                        : "text-red-600";
+
                     return (
                       <div key={team.id}>
                         <div className="flex items-center gap-2 mb-2">
@@ -438,36 +465,44 @@ export default function WeeklyPicks() {
                             width={24}
                             height={24}
                           />
-                          <span className="font-semibold">{team.name}</span>
+                          <span className={`font-semibold ${teamColor}`}>
+                            {team.name}
+                          </span>
                         </div>
+
                         <ul className="ml-6 list-disc text-sm text-[var(--text-color)]">
-                          {usersForTeam.map((entry) => (
-                            <li key={entry.userId}>
-                              {entry.userId === user?.uid
-                                ? "You"
-                                : userMap[entry.userId]?.firstName ||
-                                  entry.userId}
-                              {game.id === gameOfTheWeekId &&
-                                entry.wager?.teamId === team.id &&
-                                entry.wager?.points > 0 && (
-                                  <span className="text-yellow-600">
-                                    {" "}
-                                    ({entry.wager.points} pts)
-                                  </span>
-                                )}
-                              {entry.predictions[game.id].isCorrect ===
-                                true && (
-                                <span className="text-green-500">
-                                  {" "}
-                                  (Correct)
-                                </span>
-                              )}
-                              {entry.predictions[game.id].isCorrect ===
-                                false && (
-                                <span className="text-red-500"> (Wrong)</span>
-                              )}
-                            </li>
-                          ))}
+                          {usersForTeam.map((entry) => {
+                            const pred = entry.predictions?.[game.id];
+                            const isCorrect = pred?.isCorrect;
+                            const userColor =
+                              isCorrect === true
+                                ? "text-green-600"
+                                : isCorrect === false
+                                ? "text-red-600"
+                                : "";
+
+                            return (
+                              <li key={entry.userId} className={userColor}>
+                                {entry.userId === user?.uid
+                                  ? "You"
+                                  : userMap[entry.userId]?.firstName ||
+                                    entry.userId}
+
+                                {game.id === gameOfTheWeekId &&
+                                  entry.wager?.teamId === team.id &&
+                                  entry.wager?.points > 0 && (
+                                    <span className="text-yellow-600">
+                                      {" "}
+                                      ({entry.wager.points} pts)
+                                    </span>
+                                  )}
+
+                                {/* keep these if you still want explicit labels */}
+                                {isCorrect === true && <span> (Correct)</span>}
+                                {isCorrect === false && <span> (Wrong)</span>}
+                              </li>
+                            );
+                          })}
                         </ul>
                       </div>
                     );

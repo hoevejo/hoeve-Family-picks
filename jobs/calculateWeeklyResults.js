@@ -1,210 +1,261 @@
 import { db } from "../lib/firebaseAdmin";
-import {
-  collection,
-  getDocs,
-  getDoc,
-  updateDoc,
-  setDoc,
-  doc,
-} from "firebase-admin/firestore";
 import fetch from "node-fetch";
 import { sendNotificationToUser } from "../lib/sendNotification";
 
 export async function calculateWeeklyResults() {
   console.log("📊 Starting weekly results calculation...");
 
+  // --- Load config
   const configSnap = await db.doc("config/config").get();
-  const configData = configSnap.data();
-  const { seasonYear, seasonType, week } = configData;
-  const recapDocId = `${seasonYear}-${seasonType}-week${week}`;
+  if (!configSnap.exists) throw new Error("Config not found");
+  const cfg = configSnap.data();
+  if (!cfg) throw new Error("Config doc exists but has no data");
+  const { seasonYear, seasonType, week } = cfg;
 
-  // 🏈 Fetch updated game data
-  const response = await fetch(
-    "https://site.api.espn.com/apis/site/v2/sports/football/nfl/scoreboard"
-  );
-  const data = await response.json();
+  // Normalize seasonType to handle case differences: "regular" vs "Regular"
+  const seasonTypeSlug = String(seasonType || "").toLowerCase();
+  const seasonTypeVariants = Array.from(
+    new Set([
+      String(seasonType || ""),
+      seasonTypeSlug,
+      seasonTypeSlug.charAt(0).toUpperCase() + seasonTypeSlug.slice(1),
+    ])
+  ).filter(Boolean);
 
-  const gameWinners = {};
-  const gamesData = [];
+  const recapDocId = `${seasonYear}-${seasonTypeSlug}-week${week}`;
 
-  for (const game of data.events) {
-    const id = game.id;
-    const status = game.status?.type?.name || "scheduled";
-    const homeTeam = game.competitions[0].competitors.find(
-      (c) => c.homeAway === "home"
-    );
-    const awayTeam = game.competitions[0].competitors.find(
-      (c) => c.homeAway === "away"
-    );
-    const winnerTeam = game.competitions[0].competitors.find((c) => c.winner);
-    const winnerId = winnerTeam ? winnerTeam.team.id : null;
+  // --- 1) Build winners map from your GAMES collection (authoritative)
+  const winners = new Map(); // gameId -> winnerTeamId
+  const gamesSnap = await db
+    .collection("games")
+    .where("seasonYear", "==", seasonYear)
+    .where("week", "==", week)
+    .where("seasonType", "in", seasonTypeVariants)
+    .get();
 
-    const gameObj = {
-      gameId: id,
-      name: game.name,
-      shortName: game.shortName,
-      date: game.date,
-      status,
-      winnerId,
-      homeTeam: {
-        id: homeTeam.id,
-        name: homeTeam.team.displayName,
-        abbreviation: homeTeam.team.abbreviation,
-        score: Number(homeTeam.score),
-        logo: homeTeam.team.logo,
-        record: homeTeam.records?.[0]?.summary || "",
-      },
-      awayTeam: {
-        id: awayTeam.id,
-        name: awayTeam.team.displayName,
-        abbreviation: awayTeam.team.abbreviation,
-        score: Number(awayTeam.score),
-        logo: awayTeam.team.logo,
-        record: awayTeam.records?.[0]?.summary || "",
-      },
-    };
-
-    if (status === "STATUS_FINAL" && winnerId) {
-      gameWinners[id] = winnerId;
+  const gameIdsForWeek = [];
+  for (const g of gamesSnap.docs) {
+    const gd = g.data() || {};
+    const gameId = String(gd.id || g.id.split("-").pop()); // support either stored 'id' or doc id suffix
+    gameIdsForWeek.push(gameId);
+    if (gd.hasResult && gd.winnerId) {
+      winners.set(gameId, String(gd.winnerId));
     }
-
-    gamesData.push(gameObj);
   }
 
-  if (Object.keys(gameWinners).length === 0) {
-    console.log("⚠️ No final games yet — exiting.");
-    return { success: false, message: "No final games available." };
+  // --- 2) If any winners missing, fall back to ESPN scoreboard to fill gaps
+  const missing = gameIdsForWeek.filter((k) => !winners.has(k));
+  if (missing.length > 0) {
+    const res = await fetch(
+      "https://site.api.espn.com/apis/site/v2/sports/football/nfl/scoreboard"
+    );
+    const sb = await res.json();
+    const events = sb?.events || [];
+
+    for (const event of events) {
+      const gameId = String(event.id);
+      if (!missing.includes(gameId)) continue;
+
+      const competition = event.competitions && event.competitions[0];
+      const competitors = (competition && competition.competitors) || [];
+
+      const compStatus = (competition && competition.status) || {};
+      const evtStatus = event.status || {};
+      const isFinal =
+        compStatus?.type?.completed === true ||
+        compStatus?.type?.state === "post" ||
+        evtStatus?.type?.completed === true ||
+        evtStatus?.type?.name === "STATUS_FINAL";
+
+      if (!isFinal || competitors.length < 2) continue;
+
+      let winnerTeam = competitors.find((c) => c && c.winner === true);
+      if (!winnerTeam) {
+        const [a, b] = competitors;
+        const aScore = Number(a?.score ?? a?.score?.value ?? 0);
+        const bScore = Number(b?.score ?? b?.score?.value ?? 0);
+        if (
+          !Number.isNaN(aScore) &&
+          !Number.isNaN(bScore) &&
+          aScore !== bScore
+        ) {
+          winnerTeam = aScore > bScore ? a : b;
+        }
+      }
+      if (winnerTeam?.team?.id) {
+        winners.set(gameId, String(winnerTeam.team.id));
+      }
+    }
   }
 
-  // 🧠 Process Picks
+  // Optional STRICT mode: ensure all games have winners before grading
+  const STRICT_ALL_FINAL = true;
+  if (STRICT_ALL_FINAL) {
+    const stillMissing = gameIdsForWeek.filter((k) => !winners.has(k));
+    if (stillMissing.length > 0) {
+      console.log(
+        "⚠️ Some games have no winner yet; aborting grading:",
+        stillMissing
+      );
+      return { success: false, message: "Not all games are final yet." };
+    }
+  }
+
+  if (winners.size === 0) {
+    console.log("⚠️ No completed games with winners—exiting.");
+    return { success: false, message: "No winners available." };
+  }
+
+  // --- 3) Grade picks for this week (single query)
   const picksSnap = await db
     .collection("picks")
     .where("seasonYear", "==", seasonYear)
-    .where("seasonType", "==", seasonType)
+    .where("seasonType", "in", seasonTypeVariants)
     .where("week", "==", week)
     .get();
 
-  const userScores = {};
-  const userWeeklyDetails = [];
-  const weeklyPicks = [];
+  const userScores = {}; // uid -> weekly points
+  const userWeeklyDetails = []; // [{ uid, fullName, score }]
+  const weeklyPicks = []; // compact record for history
 
+  // batch writes in chunks
+  const commitBatch = async (writes) => {
+    if (writes.length === 0) return;
+    const b = db.batch();
+    writes.forEach(({ ref, data }) => b.update(ref, data));
+    await b.commit();
+  };
+
+  let pending = [];
   for (const pickDoc of picksSnap.docs) {
-    const data = pickDoc.data();
-    if (!data.predictions) continue;
+    const pdata = pickDoc.data() || {};
+    const uid = pdata.userId;
+    const fullName = pdata.fullName || "";
+    const preds = pdata.predictions || {};
 
     let weeklyScore = 0;
-    const updatedPredictions = {};
+    const dotUpdates = {};
 
-    for (const [gameId, prediction] of Object.entries(data.predictions)) {
-      const correct =
-        gameWinners[gameId] && prediction.teamId === gameWinners[gameId];
-      if (correct) weeklyScore++;
-      updatedPredictions[gameId] = {
-        ...prediction,
-        isCorrect: gameWinners[gameId] ? correct : null,
-      };
+    // grade only games with winners for this week
+    for (const [gameId, pred] of Object.entries(preds)) {
+      if (!pred) continue;
+      const winnerId = winners.get(String(gameId));
+      if (!winnerId) continue; // not part of this configured week or not final (in non-strict mode)
+
+      const newIsCorrect = String(pred.teamId) === String(winnerId);
+
+      // only write if changed or not set
+      const already = pred.isCorrect;
+      const needsWrite =
+        !(already === true || already === false) || already !== newIsCorrect;
+      if (needsWrite) {
+        dotUpdates[`predictions.${gameId}.isCorrect`] = newIsCorrect;
+      }
+
+      if (newIsCorrect) weeklyScore += 1;
     }
 
-    userScores[data.userId] = weeklyScore;
-    userWeeklyDetails.push({
-      uid: data.userId,
-      fullName: data.fullName || "",
-      score: weeklyScore,
-    });
+    // queue write
+    if (Object.keys(dotUpdates).length > 0) {
+      pending.push({ ref: pickDoc.ref, data: dotUpdates });
+      if (pending.length >= 450) {
+        await commitBatch(pending);
+        pending = [];
+      }
+    }
 
-    await db.doc(`picks/${pickDoc.id}`).update({
-      predictions: updatedPredictions,
-    });
-
+    userScores[uid] = (userScores[uid] || 0) + weeklyScore;
+    userWeeklyDetails.push({ uid, fullName, score: weeklyScore });
     weeklyPicks.push({
       id: pickDoc.id,
-      userId: data.userId,
-      fullName: data.fullName || "",
-      predictions: updatedPredictions,
+      userId: uid,
+      fullName,
+      graded: dotUpdates,
     });
   }
+  if (pending.length) await commitBatch(pending);
 
-  // 🏆 Leaderboard Updates
+  // --- 4) Update weekly leaderboard (regular or postseason)
   const leaderboardType =
-    seasonType === "Postseason" ? "leaderboardPostseason" : "leaderboard";
-  const leaderboardSnap = await db.collection(leaderboardType).get();
-  const updatedLeaderboard = [];
+    seasonTypeSlug === "postseason" ? "leaderboardPostseason" : "leaderboard";
 
-  for (const docSnap of leaderboardSnap.docs) {
-    const entry = docSnap.data();
-    const uid = entry.uid;
-    const score = userScores[uid] || 0;
-    const totalPoints = (entry.totalPoints || 0) + score;
-
-    updatedLeaderboard.push({
-      ...entry,
-      totalPoints,
-      lastWeekPoints: score,
-    });
+  const lbSnap = await db.collection(leaderboardType).get();
+  const updated = [];
+  for (const d of lbSnap.docs) {
+    const e = d.data() || {};
+    const uid = e.uid;
+    const lastWeekPoints = userScores[uid] || 0;
+    const totalPoints = (e.totalPoints || 0) + lastWeekPoints;
+    updated.push({ ...e, lastWeekPoints, totalPoints });
   }
 
-  // 🥇 Sort + Rank
-  updatedLeaderboard.sort((a, b) => b.totalPoints - a.totalPoints);
+  // Rank by totalPoints (stable for ties)
+  updated.sort((a, b) => b.totalPoints - a.totalPoints);
+  for (let i = 0; i < updated.length; i++) {
+    const cur = updated[i];
+    const sameAsAbove = i > 0 && cur.totalPoints === updated[i - 1].totalPoints;
+    const newRank = sameAsAbove ? updated[i - 1].currentRank : i + 1;
 
-  for (let i = 0; i < updatedLeaderboard.length; i++) {
-    const user = updatedLeaderboard[i];
-    const sameAsAbove =
-      i > 0 && user.totalPoints === updatedLeaderboard[i - 1].totalPoints;
-    const newRank = sameAsAbove ? updatedLeaderboard[i - 1].currentRank : i + 1;
+    const prevRank = cur.currentRank ?? newRank;
+    const positionChange = prevRank - newRank;
 
-    const previousRank = user.currentRank || newRank;
-    const change = previousRank - newRank;
+    await db.doc(`${leaderboardType}/${cur.uid}`).set(
+      {
+        ...cur,
+        previousRank: prevRank,
+        currentRank: newRank,
+        positionChange,
+      },
+      { merge: true }
+    );
 
-    await db.doc(`${leaderboardType}/${user.uid}`).set({
-      ...user,
-      previousRank,
-      currentRank: newRank,
-      positionChange: change,
-    });
-
-    user.currentRank = newRank;
-    user.previousRank = previousRank;
-    user.positionChange = change;
+    cur.previousRank = prevRank;
+    cur.currentRank = newRank;
+    cur.positionChange = positionChange;
   }
 
-  // 🏅 Update All-Time Leaderboard
+  // --- 5) Update all-time leaderboard (merge to avoid missing docs)
   const allTimeSnap = await db.collection("leaderboardAllTime").get();
-  for (const user of allTimeSnap.docs) {
-    const entry = user.data();
-    const uid = entry.uid;
-    const score = userScores[uid] || 0;
-    const totalPoints = (entry.totalPoints || 0) + score;
-
-    await db.doc(`leaderboardAllTime/${uid}`).update({ totalPoints });
+  for (const d of allTimeSnap.docs) {
+    const e = d.data() || {};
+    const uid = e.uid;
+    const add = userScores[uid] || 0;
+    if (add) {
+      await db
+        .doc(`leaderboardAllTime/${uid}`)
+        .set({ uid, totalPoints: (e.totalPoints || 0) + add }, { merge: true });
+    }
   }
 
-  // 📋 Recap + History
-  const highestScore = Math.max(
-    ...updatedLeaderboard.map((u) => u.lastWeekPoints)
+  // --- 6) Recap + History documents
+  const lastWeekPointsArr = updated.map((u) => u.lastWeekPoints ?? 0);
+  const highestScore = lastWeekPointsArr.length
+    ? Math.max(...lastWeekPointsArr)
+    : 0;
+  const lowestScore = lastWeekPointsArr.length
+    ? Math.min(...lastWeekPointsArr)
+    : 0;
+
+  const topScorers = updated.filter(
+    (u) => (u.lastWeekPoints ?? 0) === highestScore
   );
-  const lowestScore = Math.min(
-    ...updatedLeaderboard.map((u) => u.lastWeekPoints)
+  const lowestScorers = updated.filter(
+    (u) => (u.lastWeekPoints ?? 0) === lowestScore
   );
 
-  const topScorers = updatedLeaderboard.filter(
-    (u) => u.lastWeekPoints === highestScore
+  const posChanges = updated.map((u) => u.positionChange ?? 0);
+  const maxRise = posChanges.length ? Math.max(...posChanges) : 0;
+  const maxDrop = posChanges.length ? Math.min(...posChanges) : 0;
+  const biggestRisers = updated.filter(
+    (u) => (u.positionChange ?? 0) === maxRise
   );
-  const lowestScorers = updatedLeaderboard.filter(
-    (u) => u.lastWeekPoints === lowestScore
-  );
-
-  const maxRise = Math.max(...updatedLeaderboard.map((u) => u.positionChange));
-  const maxDrop = Math.min(...updatedLeaderboard.map((u) => u.positionChange));
-  const biggestRisers = updatedLeaderboard.filter(
-    (u) => u.positionChange === maxRise
-  );
-  const biggestFallers = updatedLeaderboard.filter(
-    (u) => u.positionChange === maxDrop
+  const biggestFallers = updated.filter(
+    (u) => (u.positionChange ?? 0) === maxDrop
   );
 
   await db.doc(`weeklyRecap/${recapDocId}`).set({
     week,
-    seasonType,
+    seasonType: seasonTypeSlug,
     seasonYear,
     highestScore,
     lowestScore,
@@ -216,11 +267,12 @@ export async function calculateWeeklyResults() {
     createdAt: new Date(),
   });
 
+  // Optional: keep a compact history for the week (omit full predictions to keep size sane)
   await db.doc(`history/${recapDocId}`).set({
     week,
-    seasonType,
+    seasonType: seasonTypeSlug,
     seasonYear,
-    leaderboard: updatedLeaderboard,
+    leaderboard: updated,
     recap: {
       highestScore,
       lowestScore,
@@ -230,16 +282,10 @@ export async function calculateWeeklyResults() {
       biggestFallers,
       scores: userWeeklyDetails,
     },
-    games: gamesData,
+    // If you also want games here, read from your games collection and attach; omitted to keep lean
     picks: weeklyPicks,
     createdAt: new Date(),
   });
-
-  // 🔔 Notify Users
-  await sendNotificationToUser(
-    "📊 Weekly Results Are In!",
-    `Week ${week} results have been posted. Check out the leaderboard!`
-  );
 
   console.log("✅ Weekly results calculation completed.");
   return { success: true };
