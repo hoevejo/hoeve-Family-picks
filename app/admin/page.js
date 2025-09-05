@@ -89,7 +89,7 @@ export default function AdminDashboard() {
     };
 
     fetchConfig();
-  }, [isAdmin, loading, db]);
+  }, [isAdmin, loading]);
 
   // Load games for the selected week/year/type
   useEffect(() => {
