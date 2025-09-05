@@ -11,7 +11,7 @@ const avatarOptions = [
       { label: "Fish", value: "/avatars/Animals/fish.png" },
       { label: "Lion", value: "/avatars/Animals/lion.png" },
       { label: "Peanut", value: "/avatars/Animals/peanut.png" },
-      { label: "Polar Bear", value: "/avatars/Animals/polarbear.png" },
+      { label: "Max", value: "/avatars/Animals/max.png" },
       { label: "Pug", value: "/avatars/Animals/pug.png" },
       { label: "Red Panda", value: "/avatars/Animals/redpanda.png" },
       { label: "Rottweiler", value: "/avatars/Animals/rottweiler.png" },
