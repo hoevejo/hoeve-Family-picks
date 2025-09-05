@@ -1,23 +1,25 @@
-// app/api/placeWager/route.ts
+// app/api/placeWager/route.js
 import { NextResponse } from "next/server";
 import { db } from "@/lib/firebaseAdmin";
 
-export async function POST(req: Request) {
+export async function POST(req) {
   try {
     const { userId, seasonYear, seasonType, week, teamId, points } =
       await req.json();
 
-    if (!userId || !seasonYear || !seasonType || !week || !teamId)
+    if (!userId || !seasonYear || !seasonType || !week || !teamId) {
       return NextResponse.json({ error: "Missing fields" }, { status: 400 });
+    }
 
     const cfgSnap = await db.doc("config/config").get();
     const cfg = cfgSnap.data() || {};
     const gotwId = String(cfg.gameOfTheWeekId || "");
-    if (!gotwId)
+    if (!gotwId) {
       return NextResponse.json(
         { error: "GOTW not configured" },
         { status: 400 }
       );
+    }
 
     // ✅ enforce “only up to user’s points”
     const lbCollection =
@@ -39,11 +41,12 @@ export async function POST(req: Request) {
     const seasonTypeSlug = String(seasonType).toLowerCase();
     const fullGameId = `${seasonYear}-${seasonTypeSlug}-week${week}-${gotwId}`;
     const gameSnap = await db.doc(`games/${fullGameId}`).get();
-    if (!gameSnap.exists)
+    if (!gameSnap.exists) {
       return NextResponse.json(
         { error: "GOTW game not found" },
         { status: 400 }
       );
+    }
 
     const game = gameSnap.data() || {};
     const kickoff = game?.date ? new Date(game.date).getTime() : 0;
