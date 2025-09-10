@@ -3,42 +3,73 @@ import { Timestamp } from "firebase-admin/firestore";
 import fetch from "node-fetch";
 import { sendNotificationToUser } from "../lib/sendNotification";
 
-export async function fetchAndStoreGames() {
-  const res = await fetch(
-    "https://site.api.espn.com/apis/site/v2/sports/football/nfl/scoreboard"
-  );
-  const data = await res.json();
+/**
+ * Fetch and store games for a target week.
+ * By default, if the config's deadline has passed, it will advance to NEXT week.
+ * You can also force a week/year/type via `opts`.
+ *
+ * @param {Object} opts
+ *   - week?: number           // force a specific week
+ *   - seasonYear?: number     // force a specific year
+ *   - seasonType?: "Regular" | "Postseason" // force season type
+ *   - useNextWeek?: boolean   // force next week relative to config
+ */
+export async function fetchAndStoreGames(opts = {}) {
+  // ---- read current config to decide which week to fetch
+  const cfgRef = db.doc("config/config");
+  const cfgSnap = await cfgRef.get();
+  const cfg = cfgSnap.exists ? cfgSnap.data() || {} : {};
 
-  const games = data.events || [];
-  const week = Number(data.week?.number ?? 0);
-  const seasonYear = Number(data.season?.year ?? 0);
-  const seasonTypeDisplay = data.season?.type === 3 ? "Postseason" : "Regular";
+  const cfgSeasonYear = Number(
+    opts.seasonYear ?? cfg.seasonYear ?? new Date().getFullYear()
+  );
+  const cfgSeasonType = String(opts.seasonType ?? cfg.seasonType ?? "Regular"); // "Regular" | "Postseason"
+  const cfgWeek = Number(opts.week ?? cfg.week ?? 1);
+
+  // Should we fetch next week?
+  const deadlineMs = cfg?.deadline?.toDate
+    ? cfg.deadline.toDate().getTime()
+    : cfg?.deadline?.seconds
+    ? cfg.deadline.seconds * 1000
+    : null;
+  const deadlinePassed =
+    typeof deadlineMs === "number" ? Date.now() > deadlineMs : false;
+  const useNextWeek = Boolean(
+    opts.useNextWeek || (!opts.week && deadlinePassed)
+  );
+
+  const targetWeek = useNextWeek ? cfgWeek + 1 : cfgWeek;
+  const targetYear = cfgSeasonYear;
+  const seasonTypeNum = cfgSeasonType.toLowerCase() === "postseason" ? 3 : 2; // 2=Regular, 3=Postseason
+  const seasonTypeDisplay = seasonTypeNum === 3 ? "Postseason" : "Regular";
   const seasonTypeSlug = seasonTypeDisplay.toLowerCase();
 
-  // Skip preseason
-  if (data.season?.type === 1) {
-    return { success: false, message: "Preseason detected. Skipping fetch." };
-  }
+  // ---- call ESPN for the explicit target
+  const url = `https://site.api.espn.com/apis/site/v2/sports/football/nfl/scoreboard?year=${targetYear}&seasontype=${seasonTypeNum}&week=${targetWeek}`;
+  const res = await fetch(url);
+  const data = await res.json();
 
-  // Stop if season has ended
-  const leagueEndDate = new Date(data.leagues?.[0]?.season?.endDate || 0);
-  if (Date.now() > leagueEndDate.getTime()) {
-    return { success: false, message: "Season is over. Skipping fetch." };
-  }
-
+  const games = data?.events || [];
   if (!games.length) {
     return {
       success: false,
-      message: "No games found for this scoreboard window.",
+      message: `No games found for year=${targetYear}, type=${seasonTypeNum}, week=${targetWeek}`,
     };
   }
 
-  // Earliest kickoff for deadline
+  // End-of-season safeguard (from returned payload if present)
+  const leagueEndDateStr = data?.leagues?.[0]?.season?.endDate;
+  const leagueEndDate = leagueEndDateStr ? new Date(leagueEndDateStr) : null;
+  if (leagueEndDate && Date.now() > leagueEndDate.getTime()) {
+    return { success: false, message: "Season is over. Skipping fetch." };
+  }
+
+  // earliest kickoff -> deadline
   const earliestGame = games.reduce((earliest, cur) =>
     new Date(cur.date) < new Date(earliest.date) ? cur : earliest
   );
 
-  // ----- write games (batch) -----
+  // ---- write games (batch)
   const batch = db.batch();
 
   for (const ev of games) {
@@ -59,7 +90,7 @@ export async function fetchAndStoreGames() {
     const home = competitors.find((c) => c?.homeAway === "home") || {};
     const away = competitors.find((c) => c?.homeAway === "away") || {};
 
-    // ESPN sometimes omits `winner`; fallback by score
+    // derive winner if flag missing but final scores differ
     let winnerTeam = competitors.find((c) => c && c.winner === true);
     if (!winnerTeam && isFinal && competitors.length >= 2) {
       const [a, b] = competitors;
@@ -71,7 +102,7 @@ export async function fetchAndStoreGames() {
     }
     const winnerId = winnerTeam?.team?.id ? String(winnerTeam.team.id) : null;
 
-    const docId = `${seasonYear}-${seasonTypeSlug}-week${week}-${gameId}`;
+    const docId = `${targetYear}-${seasonTypeSlug}-week${targetWeek}-${gameId}`;
     const ref = db.doc(`games/${docId}`);
 
     batch.set(
@@ -82,9 +113,9 @@ export async function fetchAndStoreGames() {
         shortName: ev.shortName,
         date: ev.date, // ISO
         status: statusName,
-        seasonType: seasonTypeDisplay, // keep display case
-        seasonYear,
-        week,
+        seasonType: seasonTypeDisplay, // "Regular" or "Postseason"
+        seasonYear: targetYear,
+        week: targetWeek,
         homeTeam: {
           id: String(home?.team?.id || ""),
           name: home?.team?.displayName || "",
@@ -113,14 +144,16 @@ export async function fetchAndStoreGames() {
 
   await batch.commit();
 
-  // ----- config update (keep existing GOTW unless week changed) -----
-  const cfgRef = db.doc("config/config");
-  const cfgSnap = await cfgRef.get();
-  const prev = cfgSnap.exists ? cfgSnap.data() || {} : {};
+  // ---- update config for the TARGET week
+  const prev = cfg || {};
   const prevWeek = Number(prev.week ?? 0);
 
-  // Choose GOTW if not set for this week (simple heuristic: pick latest kickoff)
-  let gameOfTheWeekId = prevWeek === week ? prev.gameOfTheWeekId : null;
+  // If switching to a new week (or GOTW empty), auto-pick GOTW = latest kickoff of target week
+  let gameOfTheWeekId =
+    prevWeek === targetWeek && prev.gameOfTheWeekId
+      ? String(prev.gameOfTheWeekId)
+      : null;
+
   if (!gameOfTheWeekId) {
     const latestGame = games.reduce((latest, cur) =>
       new Date(cur.date) > new Date(latest.date) ? cur : latest
@@ -130,18 +163,35 @@ export async function fetchAndStoreGames() {
 
   await cfgRef.set(
     {
-      week,
+      week: targetWeek,
+      seasonYear: targetYear,
       seasonType: seasonTypeDisplay,
-      seasonYear,
-      seasonTypeSlug, // handy for queries
+      seasonTypeSlug,
       deadline: Timestamp.fromDate(new Date(earliestGame.date)),
-      endOfSeason: Timestamp.fromDate(leagueEndDate),
-      recapWeek: Math.max(0, week - 1),
+      endOfSeason: leagueEndDate
+        ? Timestamp.fromDate(leagueEndDate)
+        : prev.endOfSeason || null,
+      recapWeek: Math.max(0, targetWeek - 1),
       gameOfTheWeekId,
       lastUpdated: new Date().toISOString(),
     },
     { merge: true }
   );
 
-  return { success: true, count: games.length, week, gameOfTheWeekId };
+  // Optional: notify users picks are open
+  try {
+    await sendNotificationToUser(
+      `📅 Week ${targetWeek} (${seasonTypeDisplay}) is live!`,
+      `Make your picks before the deadline.`
+    );
+  } catch (_) {
+    // notification is best-effort; ignore failures
+  }
+
+  return {
+    success: true,
+    count: games.length,
+    week: targetWeek,
+    gameOfTheWeekId,
+  };
 }
