@@ -220,7 +220,10 @@ export default function WeeklyPicks() {
     event.preventDefault();
     if (!user || !seasonYear || !seasonType || !week) return;
 
-    const allPicked = games.every(
+    const nonGotwGames = games.filter(
+      (g) => String(g.id) !== String(gameOfTheWeekId)
+    );
+    const allPicked = nonGotwGames.every(
       (game) => predictions[String(game.id)]?.teamId
     );
     if (!allPicked) {
@@ -401,7 +404,7 @@ export default function WeeklyPicks() {
                     ? "border-amber-500 bg-amber-50 shadow-md"
                     : "border-[var(--border-color)] bg-[var(--card-color)] hover:bg-[var(--hover-color)]"
                 }`}
-                          onClick={() =>
+                          onClick={() => {
                             setWagerPick((prev) => ({
                               ...(prev || {
                                 gameId: String(game.id),
@@ -409,8 +412,13 @@ export default function WeeklyPicks() {
                               }),
                               gameId: String(game.id),
                               teamId: String(team.id),
-                            }))
-                          }
+                            }));
+                            // keep local predictions in sync so "all picked" logic is happy
+                            handlePredictionChange(
+                              String(game.id),
+                              String(team.id)
+                            );
+                          }}
                         >
                           <Image
                             src={team.logo}
