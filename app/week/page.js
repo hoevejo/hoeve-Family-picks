@@ -32,6 +32,7 @@ export default function WeeklyPicks() {
   const [gameOfTheWeekId, setGameOfTheWeekId] = useState(null);
   const [wagerPick, setWagerPick] = useState(null); // { gameId, teamId, points }
   const [userPoints, setUserPoints] = useState(0);
+  const [isSubmitting, setIsSubmitting] = useState(false); // 👈 NEW
 
   // theme
   useEffect(() => {
@@ -218,6 +219,7 @@ export default function WeeklyPicks() {
 
   const handleSubmit = async (event) => {
     event.preventDefault();
+    if (isSubmitting) return; // 👈 guard
     if (!user || !seasonYear || !seasonType || !week) return;
 
     const nonGotwGames = games.filter(
@@ -245,6 +247,7 @@ export default function WeeklyPicks() {
       }
     }
 
+    setIsSubmitting(true); // 👈 lock UI
     try {
       // Save predictions (merge; do not overwrite doc)
       const ref = doc(
@@ -281,6 +284,7 @@ export default function WeeklyPicks() {
     } catch (error) {
       console.error("Error submitting:", error);
       alert("Something went wrong submitting your picks. Please try again.");
+      setIsSubmitting(false); // 👈 re-enable on error
     }
   };
 
@@ -374,7 +378,6 @@ export default function WeeklyPicks() {
               ))}
 
             {/* Game of the Week */}
-            {/* Game of the Week */}
             {gameOfTheWeekId && (
               <div className="my-6 p-5 rounded-xl border border-[var(--border-color)] bg-[var(--card-color)] shadow-md">
                 <div className="flex items-center justify-center mb-3">
@@ -451,7 +454,7 @@ export default function WeeklyPicks() {
                         prev ? { ...prev, points: n } : prev
                       );
                     }}
-                    disabled={!userPoints}
+                    disabled={!userPoints || isSubmitting}
                   />
                   <p className="text-xs opacity-70 mt-1">
                     You have {userPoints} points available.
@@ -462,9 +465,20 @@ export default function WeeklyPicks() {
 
             <button
               type="submit"
-              className="bg-blue-500 text-white px-6 py-2 rounded mt-4 block mx-auto hover:bg-blue-600 transition-all"
+              disabled={isSubmitting}
+              aria-busy={isSubmitting ? "true" : "false"}
+              className={`bg-blue-500 text-white px-6 py-2 rounded mt-4 block mx-auto transition-all
+                hover:bg-blue-600
+                disabled:opacity-60 disabled:cursor-not-allowed`}
             >
-              Submit Predictions
+              {isSubmitting ? (
+                <span className="inline-flex items-center gap-2">
+                  <span className="inline-block h-4 w-4 rounded-full border-2 border-white border-t-transparent animate-spin" />
+                  Submitting…
+                </span>
+              ) : (
+                "Submit Predictions"
+              )}
             </button>
           </form>
         </>
