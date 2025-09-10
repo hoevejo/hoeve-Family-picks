@@ -14,57 +14,85 @@ export default function WeeklyRecapPage() {
   useEffect(() => {
     const fetchRecap = async () => {
       try {
-        const configDoc = await getDoc(doc(db, "config", "config"));
-        if (!configDoc.exists()) return;
-
-        const { recapWeek, seasonType, seasonYear } = configDoc.data();
-        setRecapWeek(recapWeek);
-
-        if (recapWeek === 0) return;
-
-        const recapDoc = await getDoc(
-          doc(db, "weeklyRecap", `${seasonYear}-${seasonType}-week${recapWeek}`)
-        );
-
-        if (recapDoc.exists()) {
-          const recapData = recapDoc.data();
-
-          const uids = new Set();
-          [
-            ...recapData.topScorers,
-            ...recapData.lowestScorers,
-            ...recapData.biggestRisers,
-            ...recapData.biggestFallers,
-            ...recapData.scores,
-          ].forEach((entry) => uids.add(entry.uid));
-
-          const usersSnapshot = await getDocs(collection(db, "users"));
-          const userMap = {};
-          usersSnapshot.forEach((userDoc) => {
-            const user = userDoc.data();
-            userMap[user.uid] = user;
-          });
-
-          const mapWithUserData = (entries) =>
-            entries.map((entry) => ({
-              ...entry,
-              fullName: userMap[entry.uid]?.fullName || entry.uid,
-              profilePicture:
-                userMap[entry.uid]?.profilePicture || "/default-avatar.png",
-            }));
-
-          setRecap({
-            ...recapData,
-            topScorers: mapWithUserData(recapData.topScorers),
-            lowestScorers: mapWithUserData(recapData.lowestScorers),
-            biggestRisers: mapWithUserData(recapData.biggestRisers),
-            biggestFallers: mapWithUserData(recapData.biggestFallers),
-            scores: mapWithUserData(recapData.scores),
-          });
+        const configSnap = await getDoc(doc(db, "config", "config"));
+        if (!configSnap.exists()) {
+          setLoading(false);
+          return;
         }
+
+        const cfg = configSnap.data() || {};
+        const { seasonYear } = cfg;
+        const rw = Number(cfg.recapWeek ?? 0);
+        setRecapWeek(rw);
+        if (rw === 0) {
+          setLoading(false);
+          return;
+        }
+
+        // Normalize to slug for recap doc id, prefer seasonTypeSlug from config if present
+        const rawType = (cfg.seasonTypeSlug || cfg.seasonType || "").toString();
+        const typeSlug = rawType.toLowerCase().includes("post")
+          ? "postseason"
+          : "regular";
+
+        // Primary (correct) ID
+        const recapId = `${seasonYear}-${typeSlug}-week${rw}`;
+        let recapDoc = await getDoc(doc(db, "weeklyRecap", recapId));
+
+        // Fallbacks in case old jobs wrote different casing
+        if (!recapDoc.exists()) {
+          const legacyIdExact = `${seasonYear}-${rawType}-week${rw}`;
+          const legacyIdLower = `${seasonYear}-${rawType.toLowerCase()}-week${rw}`;
+          recapDoc = await getDoc(doc(db, "weeklyRecap", legacyIdExact));
+          if (!recapDoc.exists()) {
+            recapDoc = await getDoc(doc(db, "weeklyRecap", legacyIdLower));
+          }
+        }
+
+        if (!recapDoc.exists()) {
+          setLoading(false);
+          toast.error("No recap data found for the configured week.");
+          return;
+        }
+
+        const recapData = recapDoc.data();
+
+        // Build user map for names/avatars
+        const usersSnap = await getDocs(collection(db, "users"));
+        const userMap = {};
+        usersSnap.forEach((u) => {
+          const ud = u.data();
+          if (ud?.uid) userMap[ud.uid] = ud;
+        });
+
+        const mapWithUserData = (entries = []) =>
+          entries.map((entry) => {
+            const u = userMap[entry.uid] || {};
+            return {
+              ...entry,
+              fullName:
+                entry.fullName ||
+                u.fullName ||
+                [u.firstName, u.lastName].filter(Boolean).join(" ") ||
+                entry.uid,
+              profilePicture:
+                u.profilePicture ||
+                entry.profilePicture ||
+                "/default-avatar.png",
+            };
+          });
+
+        setRecap({
+          ...recapData,
+          topScorers: mapWithUserData(recapData.topScorers),
+          lowestScorers: mapWithUserData(recapData.lowestScorers),
+          biggestRisers: mapWithUserData(recapData.biggestRisers),
+          biggestFallers: mapWithUserData(recapData.biggestFallers),
+          scores: mapWithUserData(recapData.scores),
+        });
       } catch (err) {
-        toast.error("Error fetching recap data. Please try again later.");
         console.error("Error fetching recap:", err);
+        toast.error("Error fetching recap data. Please try again later.");
       } finally {
         setLoading(false);
       }
@@ -73,67 +101,87 @@ export default function WeeklyRecapPage() {
     fetchRecap();
   }, []);
 
-  const formatSeasonType = (type) =>
-    type === "Regular" ? "Regular Season" : "Postseason";
+  const formatSeasonType = (type) => {
+    const t = (type || "").toString().toLowerCase();
+    return t.includes("post") ? "Postseason" : "Regular Season";
+  };
 
   const avgScore = useMemo(() => {
-    if (!recap?.scores) return 0;
-    return (
-      (recap.scores.reduce((sum, u) => sum + (u.score || 0), 0) || 0) /
-      (recap.scores?.length || 1)
-    ).toFixed(2);
+    if (!recap?.scores?.length) return 0;
+    const total = recap.scores.reduce(
+      (sum, u) => sum + (Number(u.score) || 0),
+      0
+    );
+    return (total / recap.scores.length).toFixed(2);
   }, [recap]);
 
-  const Section = ({ title, users }) => (
+  const Section = ({ title, users = [] }) => (
     <div className="bg-[var(--card-color)] border border-[var(--border-color)] rounded-xl p-4 mb-4 shadow">
       <h2 className="text-xl font-bold mb-3 text-[var(--text-color)]">
         {title}
       </h2>
-      <ul className="space-y-2">
-        {users.map((u) => (
-          <li key={u.uid} className="flex items-center gap-3">
-            <Image
-              src={u.profilePicture}
-              alt={u.fullName}
-              width={32}
-              height={32}
-              className="rounded-full border border-[var(--border-color)]"
-            />
-            <span className="text-[var(--text-color)] font-medium">
-              {u.fullName}
-            </span>
-            {u.score !== undefined && (
-              <span className="ml-auto text-[var(--text-color)] font-semibold">
-                {u.score} pts
+      {users.length === 0 ? (
+        <p className="opacity-70">No data.</p>
+      ) : (
+        <ul className="space-y-2">
+          {users.map((u) => (
+            <li key={u.uid} className="flex items-center gap-3">
+              <Image
+                src={u.profilePicture || "/default-avatar.png"}
+                alt={u.fullName || u.uid}
+                width={32}
+                height={32}
+                className="rounded-full border border-[var(--border-color)]"
+              />
+              <span className="text-[var(--text-color)] font-medium">
+                {u.fullName || u.uid}
               </span>
-            )}
-          </li>
-        ))}
-      </ul>
+              {u.score !== undefined && (
+                <span className="ml-auto text-[var(--text-color)] font-semibold">
+                  {u.score} pts
+                </span>
+              )}
+            </li>
+          ))}
+        </ul>
+      )}
     </div>
   );
 
-  if (loading)
+  if (loading) {
     return (
-      <p className="text-center mt-6 text-[var(--text-color)]">
-        Loading recap...
-      </p>
+      <>
+        <Toaster position="top-center" />
+        <p className="text-center mt-6 text-[var(--text-color)]">
+          Loading recap...
+        </p>
+      </>
     );
+  }
 
-  if (recapWeek === 0)
+  if (recapWeek === 0) {
     return (
-      <p className="text-center mt-6 text-[var(--text-color)]">
-        No weekly recap yet — come back next week for results!
-      </p>
+      <>
+        <Toaster position="top-center" />
+        <p className="text-center mt-6 text-[var(--text-color)]">
+          No weekly recap yet — come back next week for results!
+        </p>
+      </>
     );
+  }
 
-  if (!recap)
+  if (!recap) {
     return (
-      <p className="text-center mt-6 text-red-500">No recap data found.</p>
+      <>
+        <Toaster position="top-center" />
+        <p className="text-center mt-6 text-red-500">No recap data found.</p>
+      </>
     );
+  }
 
   return (
     <div className="min-h-screen px-4 py-6 bg-[var(--bg-color)] text-[var(--text-color)] transition-colors">
+      <Toaster position="top-center" />
       <h1 className="text-3xl font-bold text-center mb-6">
         📝 Week {recap.week} Recap ({formatSeasonType(recap.seasonType)})
       </h1>
@@ -148,28 +196,34 @@ export default function WeeklyRecapPage() {
           <h2 className="text-xl font-bold mb-3 text-[var(--text-color)]">
             📊 All Scores
           </h2>
-          <ul className="space-y-2">
-            {recap.scores?.map((u) => (
-              <li key={u.uid} className="flex items-center gap-3">
-                <Image
-                  src={u.profilePicture}
-                  alt={u.fullName}
-                  width={32}
-                  height={32}
-                  className="rounded-full border border-[var(--border-color)]"
-                />
-                <span className="text-[var(--text-color)] font-medium">
-                  {u.fullName}
-                </span>
-                <span className="ml-auto text-[var(--text-color)] font-semibold">
-                  {u.score} pts
-                </span>
-              </li>
-            ))}
-          </ul>
-          <p className="text-center text-sm text-[var(--text-color)] mt-4">
-            {recap.scores?.length || 0} participants — Avg Score: {avgScore}
-          </p>
+          {recap.scores?.length ? (
+            <>
+              <ul className="space-y-2">
+                {recap.scores.map((u) => (
+                  <li key={u.uid} className="flex items-center gap-3">
+                    <Image
+                      src={u.profilePicture || "/default-avatar.png"}
+                      alt={u.fullName || u.uid}
+                      width={32}
+                      height={32}
+                      className="rounded-full border border-[var(--border-color)]"
+                    />
+                    <span className="text-[var(--text-color)] font-medium">
+                      {u.fullName || u.uid}
+                    </span>
+                    <span className="ml-auto text-[var(--text-color)] font-semibold">
+                      {u.score} pts
+                    </span>
+                  </li>
+                ))}
+              </ul>
+              <p className="text-center text-sm text-[var(--text-color)] mt-4">
+                {recap.scores.length} participants — Avg Score: {avgScore}
+              </p>
+            </>
+          ) : (
+            <p className="opacity-70">No scores recorded.</p>
+          )}
         </div>
       </div>
     </div>
