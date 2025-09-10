@@ -178,16 +178,6 @@ export async function fetchAndStoreGames(opts = {}) {
     { merge: true }
   );
 
-  // Optional: notify users picks are open
-  try {
-    await sendNotificationToUser(
-      `📅 Week ${targetWeek} (${seasonTypeDisplay}) is live!`,
-      `Make your picks before the deadline.`
-    );
-  } catch (_) {
-    // notification is best-effort; ignore failures
-  }
-
   return {
     success: true,
     count: games.length,
