@@ -371,13 +371,16 @@ export default function WeeklyPicks() {
               ))}
 
             {/* Game of the Week */}
+            {/* Game of the Week */}
             {gameOfTheWeekId && (
-              <div className="my-6 p-4 bg-yellow-100 rounded-lg shadow-md">
-                <h2 className="text-xl font-bold text-center mb-2">
-                  🔥 Game of the Week{" "}
-                  <span className="text-yellow-500 align-middle">⭐</span>
-                </h2>
-                <p className="text-center text-sm mb-4">
+              <div className="my-6 p-5 rounded-xl border border-[var(--border-color)] bg-[var(--card-color)] shadow-md">
+                <div className="flex items-center justify-center mb-3">
+                  <span className="inline-flex items-center gap-2 rounded-full px-3 py-1 text-xs font-semibold border border-amber-400/50 text-amber-500">
+                    ⭐ Game of the Week
+                  </span>
+                </div>
+
+                <p className="text-center text-sm opacity-80 mb-4">
                   Choose a team and risk your points. Double if you&apos;re
                   right — lose them if you&apos;re wrong.
                 </p>
@@ -393,11 +396,11 @@ export default function WeeklyPicks() {
                         <label
                           key={team.id}
                           className={`w-36 sm:w-40 h-44 sm:h-48 flex flex-col items-center justify-center text-center p-3 border-2 rounded-lg transition-all
-                            ${
-                              String(wagerPick?.teamId) === String(team.id)
-                                ? "border-orange-500 bg-orange-100 shadow-md"
-                                : "border-[var(--border-color)] bg-[var(--card-color)] hover:bg-[var(--hover-color)]"
-                            }`}
+                ${
+                  String(wagerPick?.teamId) === String(team.id)
+                    ? "border-amber-500 bg-amber-50 shadow-md"
+                    : "border-[var(--border-color)] bg-[var(--card-color)] hover:bg-[var(--hover-color)]"
+                }`}
                           onClick={() =>
                             setWagerPick((prev) => ({
                               ...(prev || {
@@ -423,13 +426,13 @@ export default function WeeklyPicks() {
                     </div>
                   ))}
 
-                <div className="mt-4 flex flex-col items-center">
+                <div className="mt-5 flex flex-col items-center">
                   <label className="text-sm mb-1">Wager Amount</label>
                   <input
                     type="number"
                     min={0}
                     max={userPoints}
-                    className="w-32 p-2 border rounded text-center"
+                    className="w-32 p-2 border rounded text-center bg-[var(--card-color)] border-[var(--border-color)]"
                     value={wagerPick?.points ?? ""}
                     onChange={(e) => {
                       const n = Math.max(
@@ -442,7 +445,7 @@ export default function WeeklyPicks() {
                     }}
                     disabled={!userPoints}
                   />
-                  <p className="text-xs text-gray-600 mt-1">
+                  <p className="text-xs opacity-70 mt-1">
                     You have {userPoints} points available.
                   </p>
                 </div>
