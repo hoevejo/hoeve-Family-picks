@@ -10,97 +10,123 @@ import { subscribeToPushNotifications } from "@/lib/pushUtils";
 
 export default function Leaderboard() {
   const { user } = useAuth();
+
   const [leaderboard, setLeaderboard] = useState([]);
   const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState("Regular Season");
   const [showPopup, setShowPopup] = useState(false);
+
   const tabs = useMemo(() => ["Regular Season", "Postseason", "All-Time"], []);
 
-  // Fetch season type from config
+  // Normalize and use current config to pick default tab
   useEffect(() => {
     const fetchConfig = async () => {
-      const configDoc = await getDoc(doc(db, "config", "config"));
-      if (configDoc.exists()) {
-        const config = configDoc.data();
-        const type = config.seasonType;
-        if (type === "Regular") setActiveTab("Regular Season");
-        else if (type === "Postseason") setActiveTab("Postseason");
-        else setActiveTab("All-Time"); // fallback or manually set for future use
+      try {
+        const configDoc = await getDoc(doc(db, "config", "config"));
+        if (!configDoc.exists()) return;
+
+        const cfg = configDoc.data() || {};
+        const type = String(cfg.seasonType || "").toLowerCase();
+        if (type.startsWith("post")) setActiveTab("Postseason");
+        else if (type.startsWith("reg")) setActiveTab("Regular Season");
+        else setActiveTab("All-Time");
+      } catch {
+        // leave default
       }
     };
     fetchConfig();
   }, []);
 
-  // Fetch leaderboard based on active tab
+  // Get the right collection for the selected tab
+  const collectionName = useMemo(() => {
+    if (activeTab === "Postseason") return "leaderboardPostseason";
+    if (activeTab === "All-Time") return "leaderboardAllTime";
+    return "leaderboard"; // Regular Season
+  }, [activeTab]);
+
   useEffect(() => {
     const fetchLeaderboard = async () => {
       setLoading(true);
       try {
-        let refPath = "leaderboard";
-        if (activeTab === "Postseason") refPath = "leaderboardPostseason";
-        if (activeTab === "All-Time") refPath = "leaderboardAllTime";
+        // Load entries
+        const lbSnap = await getDocs(collection(db, collectionName));
+        const raw = lbSnap.docs.map((d) => ({ id: d.id, ...d.data() }));
 
-        const leaderboardRef = collection(db, refPath);
-        const snapshot = await getDocs(leaderboardRef);
-        const leaderboardData = snapshot.docs.map((doc) => ({
-          id: doc.id,
-          ...doc.data(),
-        }));
-
-        const usersSnapshot = await getDocs(collection(db, "users"));
+        // Load user map (avatars / names)
+        const usersSnap = await getDocs(collection(db, "users"));
         const userMap = {};
-        usersSnapshot.forEach((userDoc) => {
-          const userData = userDoc.data();
-          userMap[userData.uid] = userData;
+        usersSnap.forEach((u) => {
+          const ud = u.data();
+          userMap[ud.uid] = ud;
         });
 
-        const enrichedData = leaderboardData.map((entry) => ({
-          ...entry,
-          profilePicture:
-            userMap[entry.uid]?.profilePicture || "/default-avatar.png",
-          firstName: userMap[entry.uid]?.firstName || entry.uid,
-        }));
+        // Enrich + defaults
+        const rows = raw.map((e) => {
+          const u = userMap[e.uid] || {};
+          return {
+            ...e,
+            profilePicture: u.profilePicture || "/default-avatar.png",
+            firstName: u.firstName || u.fullName || e.uid,
+            // safe defaults for math/display
+            totalPoints: Number(e.totalPoints || 0),
+            lastWeekPoints: Number(e.lastWeekPoints || 0),
+            currentRank:
+              typeof e.currentRank === "number" && e.currentRank > 0
+                ? e.currentRank
+                : null,
+            positionChange: Number(e.positionChange || 0),
+          };
+        });
 
+        // Sort:
+        // - Regular/Postseason: by currentRank if present, else by totalPoints desc
+        // - All-Time: totalPoints desc
+        let sorted = [...rows];
         if (activeTab === "All-Time") {
-          enrichedData.sort((a, b) => b.totalPoints - a.totalPoints);
+          sorted.sort((a, b) => b.totalPoints - a.totalPoints);
         } else {
-          enrichedData.sort((a, b) => {
-            const rankA = a.currentRank === 0 ? Infinity : a.currentRank;
-            const rankB = b.currentRank === 0 ? Infinity : b.currentRank;
-            return rankA - rankB;
+          sorted.sort((a, b) => {
+            const aRank = a.currentRank ?? Infinity;
+            const bRank = b.currentRank ?? Infinity;
+            if (aRank !== bRank) return aRank - bRank;
+            // fallback if ranks missing/tied
+            return b.totalPoints - a.totalPoints;
           });
         }
 
-        setLeaderboard(enrichedData);
-      } catch (error) {
-        console.error("Error fetching leaderboard:", error);
+        setLeaderboard(sorted);
+      } catch (err) {
+        console.error("Error fetching leaderboard:", err);
+        setLeaderboard([]);
       } finally {
         setLoading(false);
       }
     };
 
     fetchLeaderboard();
-  }, [activeTab]);
+  }, [collectionName, activeTab]);
 
-  // Show notification popup after login (Option B: Delay)
+  // Optional: nudge to enable notifications
   useEffect(() => {
     if (user && user.notificationsEnabled !== true) {
-      const timer = setTimeout(() => setShowPopup(true), 5000);
-      return () => clearTimeout(timer);
+      const t = setTimeout(() => setShowPopup(true), 5000);
+      return () => clearTimeout(t);
     }
   }, [user]);
 
+  // Rank to display
   const getRankDisplay = (index, entry) => {
     if (activeTab === "All-Time") return index + 1;
     return entry.currentRank || index + 1;
   };
 
-  if (loading)
+  if (loading) {
     return (
       <p className="text-center mt-10 text-[var(--text-color)]">
         Loading leaderboard...
       </p>
     );
+  }
 
   return (
     <div className="flex flex-col items-center min-h-screen px-4 py-6 bg-[var(--bg-color)] text-[var(--text-color)] transition-colors">
@@ -134,9 +160,15 @@ export default function Leaderboard() {
               <th className="px-4 py-3 text-left border-l border-[var(--border-color)]">
                 Player
               </th>
+              {/* Total points always */}
               <th className="px-4 py-3 text-right w-24 border-r border-[var(--border-color)]">
-                Points
+                Total
               </th>
+              {/* Show "This Week" for all tabs (idempotent job writes lastWeekPoints everywhere) */}
+              <th className="px-4 py-3 text-right w-28 border-r border-[var(--border-color)]">
+                This Week
+              </th>
+              {/* Seasonal tabs get position change */}
               {activeTab !== "All-Time" && (
                 <th className="px-2 py-3 text-center w-5 border-x border-[var(--border-color)]">
                   Change
@@ -144,14 +176,16 @@ export default function Leaderboard() {
               )}
             </tr>
           </thead>
+
           <tbody className="divide-y divide-[var(--border-color)]">
             {leaderboard.map((entry, index) => {
               const isCurrentUser = user?.uid === entry.uid;
               const rank = getRankDisplay(index, entry);
+              const change = entry.positionChange || 0;
 
               return (
                 <tr
-                  key={entry.id}
+                  key={entry.uid || entry.id || index}
                   className={`transition ${
                     isCurrentUser
                       ? "bg-[var(--accent-color)/10] font-semibold"
@@ -163,7 +197,7 @@ export default function Leaderboard() {
                   </td>
 
                   <td className="px-4 py-3 whitespace-nowrap border-l border-[var(--border-color)]">
-                    <div className="flex items-center gap-1">
+                    <div className="flex items-center gap-2">
                       <Image
                         src={entry.profilePicture}
                         alt={entry.firstName}
@@ -179,21 +213,24 @@ export default function Leaderboard() {
                     {entry.totalPoints}
                   </td>
 
+                  <td className="px-4 py-3 text-right border-r border-[var(--border-color)]">
+                    {entry.lastWeekPoints}
+                  </td>
+
                   {activeTab !== "All-Time" && (
                     <td
                       className={`px-2 py-3 text-center font-medium border-x border-[var(--border-color)] ${
-                        entry.positionChange > 0
+                        change > 0
                           ? "text-green-500"
-                          : entry.positionChange < 0
+                          : change < 0
                           ? "text-red-500"
                           : "text-gray-500"
                       }`}
                     >
-                      {entry.positionChange > 0 && "▲ "}
-                      {entry.positionChange < 0 && "▼ "}
-                      {entry.positionChange === 0 && "—"}
-                      {entry.positionChange !== 0 &&
-                        Math.abs(entry.positionChange)}
+                      {change > 0 && "▲ "}
+                      {change < 0 && "▼ "}
+                      {change === 0 && "—"}
+                      {change !== 0 && Math.abs(change)}
                     </td>
                   )}
                 </tr>
