@@ -18,41 +18,34 @@ export default function Leaderboard() {
 
   const tabs = useMemo(() => ["Regular Season", "Postseason", "All-Time"], []);
 
-  // Normalize and use current config to pick default tab
+  // Pick default tab based on config.seasonType (handles "Regular", "regular", etc.)
   useEffect(() => {
     const fetchConfig = async () => {
       try {
-        const configDoc = await getDoc(doc(db, "config", "config"));
-        if (!configDoc.exists()) return;
-
-        const cfg = configDoc.data() || {};
-        const type = String(cfg.seasonType || "").toLowerCase();
+        const snap = await getDoc(doc(db, "config", "config"));
+        if (!snap.exists()) return;
+        const type = String((snap.data() || {}).seasonType || "").toLowerCase();
         if (type.startsWith("post")) setActiveTab("Postseason");
         else if (type.startsWith("reg")) setActiveTab("Regular Season");
         else setActiveTab("All-Time");
-      } catch {
-        // leave default
-      }
+      } catch {}
     };
     fetchConfig();
   }, []);
 
-  // Get the right collection for the selected tab
   const collectionName = useMemo(() => {
     if (activeTab === "Postseason") return "leaderboardPostseason";
     if (activeTab === "All-Time") return "leaderboardAllTime";
-    return "leaderboard"; // Regular Season
+    return "leaderboard";
   }, [activeTab]);
 
   useEffect(() => {
     const fetchLeaderboard = async () => {
       setLoading(true);
       try {
-        // Load entries
         const lbSnap = await getDocs(collection(db, collectionName));
         const raw = lbSnap.docs.map((d) => ({ id: d.id, ...d.data() }));
 
-        // Load user map (avatars / names)
         const usersSnap = await getDocs(collection(db, "users"));
         const userMap = {};
         usersSnap.forEach((u) => {
@@ -60,16 +53,13 @@ export default function Leaderboard() {
           userMap[ud.uid] = ud;
         });
 
-        // Enrich + defaults
         const rows = raw.map((e) => {
           const u = userMap[e.uid] || {};
           return {
             ...e,
             profilePicture: u.profilePicture || "/default-avatar.png",
             firstName: u.firstName || u.fullName || e.uid,
-            // safe defaults for math/display
             totalPoints: Number(e.totalPoints || 0),
-            lastWeekPoints: Number(e.lastWeekPoints || 0),
             currentRank:
               typeof e.currentRank === "number" && e.currentRank > 0
                 ? e.currentRank
@@ -78,9 +68,6 @@ export default function Leaderboard() {
           };
         });
 
-        // Sort:
-        // - Regular/Postseason: by currentRank if present, else by totalPoints desc
-        // - All-Time: totalPoints desc
         let sorted = [...rows];
         if (activeTab === "All-Time") {
           sorted.sort((a, b) => b.totalPoints - a.totalPoints);
@@ -89,8 +76,7 @@ export default function Leaderboard() {
             const aRank = a.currentRank ?? Infinity;
             const bRank = b.currentRank ?? Infinity;
             if (aRank !== bRank) return aRank - bRank;
-            // fallback if ranks missing/tied
-            return b.totalPoints - a.totalPoints;
+            return b.totalPoints - a.totalPoints; // fallback
           });
         }
 
@@ -106,7 +92,6 @@ export default function Leaderboard() {
     fetchLeaderboard();
   }, [collectionName, activeTab]);
 
-  // Optional: nudge to enable notifications
   useEffect(() => {
     if (user && user.notificationsEnabled !== true) {
       const t = setTimeout(() => setShowPopup(true), 5000);
@@ -114,7 +99,6 @@ export default function Leaderboard() {
     }
   }, [user]);
 
-  // Rank to display
   const getRankDisplay = (index, entry) => {
     if (activeTab === "All-Time") return index + 1;
     return entry.currentRank || index + 1;
@@ -160,15 +144,9 @@ export default function Leaderboard() {
               <th className="px-4 py-3 text-left border-l border-[var(--border-color)]">
                 Player
               </th>
-              {/* Total points always */}
               <th className="px-4 py-3 text-right w-24 border-r border-[var(--border-color)]">
-                Total
+                Total Points
               </th>
-              {/* Show "This Week" for all tabs (idempotent job writes lastWeekPoints everywhere) */}
-              <th className="px-4 py-3 text-right w-28 border-r border-[var(--border-color)]">
-                This Week
-              </th>
-              {/* Seasonal tabs get position change */}
               {activeTab !== "All-Time" && (
                 <th className="px-2 py-3 text-center w-5 border-x border-[var(--border-color)]">
                   Change
@@ -176,7 +154,6 @@ export default function Leaderboard() {
               )}
             </tr>
           </thead>
-
           <tbody className="divide-y divide-[var(--border-color)]">
             {leaderboard.map((entry, index) => {
               const isCurrentUser = user?.uid === entry.uid;
@@ -195,7 +172,6 @@ export default function Leaderboard() {
                   <td className="px-4 py-3 text-center font-bold border-x border-[var(--border-color)]">
                     {rank}
                   </td>
-
                   <td className="px-4 py-3 whitespace-nowrap border-l border-[var(--border-color)]">
                     <div className="flex items-center gap-2">
                       <Image
@@ -208,15 +184,9 @@ export default function Leaderboard() {
                       <span className="font-medium">{entry.firstName}</span>
                     </div>
                   </td>
-
                   <td className="px-4 py-3 text-right font-semibold border-r border-[var(--border-color)]">
                     {entry.totalPoints}
                   </td>
-
-                  <td className="px-4 py-3 text-right border-r border-[var(--border-color)]">
-                    {entry.lastWeekPoints}
-                  </td>
-
                   {activeTab !== "All-Time" && (
                     <td
                       className={`px-2 py-3 text-center font-medium border-x border-[var(--border-color)] ${
@@ -240,7 +210,6 @@ export default function Leaderboard() {
         </table>
       </div>
 
-      {/* 📣 Push Notification Prompt */}
       {showPopup && user && (
         <EnableNotificationsPopup
           onConfirm={async () => {
