@@ -5,7 +5,7 @@ import { sendNotificationToUser } from "../lib/sendNotification";
 
 /**
  * Fetch and store games for a target week.
- * If config.deadline has passed (and no explicit week is provided), it advances to next week.
+ * If the current config's deadline has passed, it will advance to NEXT week unless overridden.
  *
  * @param {Object} opts
  *   - week?: number
@@ -14,7 +14,7 @@ import { sendNotificationToUser } from "../lib/sendNotification";
  *   - useNextWeek?: boolean
  */
 export async function fetchAndStoreGames(opts = {}) {
-  // ---- read current config
+  // ---- read current config to decide which week to fetch
   const cfgRef = db.doc("config/config");
   const cfgSnap = await cfgRef.get();
   const cfg = cfgSnap.exists ? cfgSnap.data() || {} : {};
@@ -43,7 +43,7 @@ export async function fetchAndStoreGames(opts = {}) {
   const seasonTypeDisplay = seasonTypeNum === 3 ? "Postseason" : "Regular";
   const seasonTypeSlug = seasonTypeDisplay.toLowerCase();
 
-  // ---- ESPN for explicit target
+  // ---- call ESPN for the explicit target WEEK/YEAR/TYPE
   const url = `https://site.api.espn.com/apis/site/v2/sports/football/nfl/scoreboard?year=${targetYear}&seasontype=${seasonTypeNum}&week=${targetWeek}`;
   const res = await fetch(url);
   const data = await res.json();
@@ -56,7 +56,7 @@ export async function fetchAndStoreGames(opts = {}) {
     };
   }
 
-  // End-of-season guard
+  // End-of-season safeguard (from returned payload if present)
   const leagueEndDateStr = data?.leagues?.[0]?.season?.endDate;
   const leagueEndDate = leagueEndDateStr ? new Date(leagueEndDateStr) : null;
   if (leagueEndDate && Date.now() > leagueEndDate.getTime()) {
@@ -112,7 +112,7 @@ export async function fetchAndStoreGames(opts = {}) {
         shortName: ev.shortName,
         date: ev.date, // ISO
         status: statusName,
-        seasonType: seasonTypeDisplay,
+        seasonType: seasonTypeDisplay, // "Regular" or "Postseason"
         seasonYear: targetYear,
         week: targetWeek,
         homeTeam: {
@@ -144,34 +144,22 @@ export async function fetchAndStoreGames(opts = {}) {
   await batch.commit();
 
   // ---- update config for the TARGET week
-
   const prev = cfg || {};
   const prevWeek = Number(prev.week ?? 0);
 
-  // Keep existing GOTW if it's the same week; otherwise pick RANDOM
+  // If same week and GOTW already set, keep it. Otherwise pick RANDOM from THIS WEEK'S games.
   let gameOfTheWeekId =
     prevWeek === targetWeek && prev.gameOfTheWeekId
       ? String(prev.gameOfTheWeekId)
       : null;
 
   if (!gameOfTheWeekId) {
-    // Seeded random so it’s consistent for a given (year,type,week)
-    const seed = `${targetYear}-${seasonTypeSlug}-week${targetWeek}`;
-    let h = 0;
-    for (let i = 0; i < seed.length; i++) {
-      h = (Math.imul(31, h) + seed.charCodeAt(i)) | 0;
-    }
-    // xorshift-ish
-    h ^= h << 13;
-    h ^= h >>> 17;
-    h ^= h << 5;
-    const rand01 = ((h >>> 0) % 1_000_000) / 1_000_000;
-
-    const idx = Math.floor(rand01 * games.length);
-    // If you want *true* randomness instead, replace the 3 lines above with:
-    // const idx = Math.floor(Math.random() * games.length);
-
+    // strictly use the current week’s games returned above
+    const idx = Math.floor(Math.random() * games.length);
     gameOfTheWeekId = String(games[idx].id);
+    console.log(
+      `🎲 GOTW for ${targetYear}-${seasonTypeSlug}-week${targetWeek}: ${gameOfTheWeekId}`
+    );
   }
 
   await cfgRef.set(
