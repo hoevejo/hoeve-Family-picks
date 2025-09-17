@@ -26,10 +26,10 @@ export async function calculateWeeklyResults() {
 
   const recapDocId = `${seasonYear}-${seasonTypeSlug}-week${week}`;
 
-  // --- 1) Build winners + final ties from your GAMES collection (authoritative)
+  // --- 1) Build winners + final ties from GAMES (authoritative)
   const winners = new Map(); // gameId -> winnerTeamId
   const finalTies = new Set(); // gameId (final but tied)
-  const gameById = new Map(); // gameId -> game doc (for scores/status)
+  const gameById = new Map(); // gameId -> game doc
 
   const gamesSnap = await db
     .collection("games")
@@ -57,7 +57,7 @@ export async function calculateWeeklyResults() {
     }
   }
 
-  // --- 2) Fill gaps from ESPN scoreboard (winners and ties)
+  // --- 2) Fill gaps from ESPN (winners/ties)
   const missing = gameIdsForWeek.filter(
     (k) => !winners.has(k) && !finalTies.has(k)
   );
@@ -91,12 +91,7 @@ export async function calculateWeeklyResults() {
       const bScore = Number(b?.score ?? b?.score?.value ?? 0);
 
       let winnerTeam = competitors.find((c) => c && c.winner === true);
-      if (
-        !winnerTeam &&
-        !Number.isNaN(aScore) &&
-        !Number.isNaN(bScore) &&
-        aScore !== bScore
-      ) {
+      if (!winnerTeam && aScore !== bScore) {
         winnerTeam = aScore > bScore ? a : b;
       }
 
@@ -131,7 +126,7 @@ export async function calculateWeeklyResults() {
 
   const userScores = {}; // uid -> weekly points (including wager)
   const userWeeklyDetails = []; // [{ uid, fullName, score }]
-  const weeklyPicks = []; // compact record for history (graded fields only)
+  const weeklyPicks = []; // compact for history
 
   const commitBatch = async (writes) => {
     if (!writes.length) return;
@@ -150,7 +145,7 @@ export async function calculateWeeklyResults() {
     const wager = pdata.wager || null;
 
     let weeklyScore = 0;
-    const dotUpdates = {}; // predictions.*.isCorrect + wagerResult
+    const dotUpdates = {};
 
     // Grade standard picks
     for (const [gameIdRaw, pred] of Object.entries(preds)) {
@@ -167,15 +162,13 @@ export async function calculateWeeklyResults() {
           dotUpdates[`predictions.${gameId}.isCorrect`] = newIsCorrect;
         if (newIsCorrect) weeklyScore += 1;
       } else if (finalTies.has(gameId)) {
-        // final tie -> ensure isCorrect is null
         if (pred.isCorrect !== null) {
           dotUpdates[`predictions.${gameId}.isCorrect`] = null;
         }
-        // no points awarded
       }
     }
 
-    // Apply GOTW wager (+points if correct, -points if wrong, push=0 on tie)
+    // GOTW wager: win=+points, lose=-points, tie=0
     let wagerApplied = 0;
     let wagerOutcome = null;
 
@@ -192,18 +185,17 @@ export async function calculateWeeklyResults() {
           const winnerId = winners.get(gameOfTheWeekId);
           if (wTeam === String(winnerId)) {
             wagerOutcome = "win";
-            wagerApplied = wPts; // ✅ win_lose mode: +points
+            wagerApplied = wPts;
           } else {
             wagerOutcome = "lose";
-            wagerApplied = -wPts; // ❗ lose: -points
+            wagerApplied = -wPts;
           }
         } else if (finalTies.has(gameOfTheWeekId)) {
           wagerOutcome = "push";
-          wagerApplied = 0; // tie: no change
+          wagerApplied = 0;
         }
       }
 
-      // Persist concise wager result (idempotent-friendly)
       dotUpdates["wagerResult"] = {
         outcome: wagerOutcome,
         applied: wagerApplied,
@@ -213,7 +205,6 @@ export async function calculateWeeklyResults() {
       weeklyScore += wagerApplied;
     }
 
-    // Queue write if needed
     if (Object.keys(dotUpdates).length > 0) {
       pending.push({ ref: pickDoc.ref, data: dotUpdates });
       if (pending.length >= 450) {
@@ -233,19 +224,41 @@ export async function calculateWeeklyResults() {
   }
   if (pending.length) await commitBatch(pending);
 
-  // --- 4) Update weekly leaderboard (idempotent totals)
+  // --- 4) Update weekly leaderboard (ACCUMULATE across weeks, idempotent per week)
   const leaderboardType =
     seasonTypeSlug === "postseason" ? "leaderboardPostseason" : "leaderboard";
-  const lbSnap = await db.collection(leaderboardType).get();
-  const updated = [];
 
-  for (const d of lbSnap.docs) {
-    const e = d.data() || {};
-    const uid = e.uid;
-    const lastWeekPoints = userScores[uid] || 0; // includes wager
-    const newTotal =
-      (e.totalPoints || 0) - (e.lastWeekPoints || 0) + lastWeekPoints; // ✅ idempotent
-    updated.push({ ...e, lastWeekPoints, totalPoints: newTotal });
+  const lbSnap = await db.collection(leaderboardType).get();
+  const lbByUid = new Map();
+  lbSnap.docs.forEach((d) => lbByUid.set(d.id, d.data() || {}));
+
+  // include users who don't have a doc yet
+  const allUids = new Set([...lbByUid.keys(), ...Object.keys(userScores)]);
+
+  const updated = [];
+  for (const uid of allUids) {
+    const prev = lbByUid.get(uid) || {};
+    const prevTotal = Number(prev.totalPoints || 0);
+    const prevLast = Number(prev.lastWeekPoints || 0);
+    const prevKey = String(prev.lastGradedKey || "");
+
+    const thisWeekPoints = Number(userScores[uid] || 0);
+    const sameWeek = prevKey === recapDocId;
+
+    // If re-grading the same week: replace the week portion only.
+    // If grading a new week: add to total.
+    const totalPoints = sameWeek
+      ? prevTotal - prevLast + thisWeekPoints
+      : prevTotal + thisWeekPoints;
+
+    const record = {
+      ...prev,
+      uid,
+      lastWeekPoints: thisWeekPoints,
+      totalPoints,
+      lastGradedKey: recapDocId,
+    };
+    updated.push(record);
   }
 
   // Rank by totalPoints (stable for ties)
@@ -273,22 +286,35 @@ export async function calculateWeeklyResults() {
     cur.positionChange = positionChange;
   }
 
-  // --- 5) Update all-time leaderboard (also idempotent)
+  // --- 5) Update all-time leaderboard (same accumulation + idempotent)
   const allTimeSnap = await db.collection("leaderboardAllTime").get();
-  for (const d of allTimeSnap.docs) {
-    const e = d.data() || {};
-    const uid = e.uid;
-    const add = userScores[uid] || 0;
-    const newTotal = (e.totalPoints || 0) - (e.lastWeekPoints || 0) + add; // ✅ idempotent
-    await db
-      .doc(`leaderboardAllTime/${uid}`)
-      .set(
-        { uid, totalPoints: newTotal, lastWeekPoints: add },
-        { merge: true }
-      );
+  const atByUid = new Map();
+  allTimeSnap.docs.forEach((d) => atByUid.set(d.id, d.data() || {}));
+
+  const allTimeUids = new Set([...atByUid.keys(), ...Object.keys(userScores)]);
+  for (const uid of allTimeUids) {
+    const prev = atByUid.get(uid) || {};
+    const prevTotal = Number(prev.totalPoints || 0);
+    const prevLast = Number(prev.lastWeekPoints || 0);
+    const prevKey = String(prev.lastGradedKey || "");
+
+    const add = Number(userScores[uid] || 0);
+    const sameWeek = prevKey === recapDocId;
+
+    const totalPoints = sameWeek ? prevTotal - prevLast + add : prevTotal + add;
+
+    await db.doc(`leaderboardAllTime/${uid}`).set(
+      {
+        uid,
+        totalPoints,
+        lastWeekPoints: add,
+        lastGradedKey: recapDocId,
+      },
+      { merge: true }
+    );
   }
 
-  // --- 6) Recap + History documents
+  // --- 6) Recap + History documents (unchanged)
   const lastWeekPointsArr = updated.map((u) => u.lastWeekPoints ?? 0);
   const highestScore = lastWeekPointsArr.length
     ? Math.max(...lastWeekPointsArr)
