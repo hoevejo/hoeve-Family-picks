@@ -1,7 +1,14 @@
 "use client";
 
 import { useState, useEffect, useMemo } from "react";
-import { collection, getDocs, getDoc, doc } from "firebase/firestore";
+import {
+  collection,
+  doc,
+  getDoc,
+  getDocs,
+  getDocsFromServer,
+  onSnapshot,
+} from "firebase/firestore";
 import { db } from "../lib/firebaseConfig";
 import Image from "next/image";
 import { useAuth } from "../context/AuthContext";
@@ -18,7 +25,7 @@ export default function Leaderboard() {
 
   const tabs = useMemo(() => ["Regular Season", "Postseason", "All-Time"], []);
 
-  // Pick default tab based on config.seasonType (handles "Regular", "regular", etc.)
+  // Pick default tab from config.seasonType ("Regular", "regular", etc.)
   useEffect(() => {
     const fetchConfig = async () => {
       try {
@@ -28,7 +35,9 @@ export default function Leaderboard() {
         if (type.startsWith("post")) setActiveTab("Postseason");
         else if (type.startsWith("reg")) setActiveTab("Regular Season");
         else setActiveTab("All-Time");
-      } catch {}
+      } catch (e) {
+        console.warn("Failed to load config:", e);
+      }
     };
     fetchConfig();
   }, []);
@@ -39,26 +48,42 @@ export default function Leaderboard() {
     return "leaderboard";
   }, [activeTab]);
 
+  // Realtime leaderboard; ignore cache-only first emission to avoid stale data
   useEffect(() => {
-    const fetchLeaderboard = async () => {
-      setLoading(true);
-      try {
-        const lbSnap = await getDocs(collection(db, collectionName));
-        const raw = lbSnap.docs.map((d) => ({ id: d.id, ...d.data() }));
+    setLoading(true);
 
-        const usersSnap = await getDocs(collection(db, "users"));
+    const collRef = collection(db, collectionName);
+
+    const unsub = onSnapshot(
+      collRef,
+      { includeMetadataChanges: true },
+      async (snap) => {
+        // If this is a cache-only snapshot (no pending writes), wait for server data
+        if (snap.metadata.fromCache && !snap.metadata.hasPendingWrites) return;
+
+        const raw = snap.docs.map((d) => ({ id: d.id, ...d.data() }));
+
+        // Always fetch users fresh (server) so names/avatars update immediately
+        let usersSnap;
+        try {
+          usersSnap = await getDocsFromServer(collection(db, "users"));
+        } catch {
+          usersSnap = await getDocs(collection(db, "users")); // fallback
+        }
+
         const userMap = {};
         usersSnap.forEach((u) => {
           const ud = u.data();
-          userMap[ud.uid] = ud;
+          if (ud?.uid) userMap[ud.uid] = ud;
         });
 
         const rows = raw.map((e) => {
           const u = userMap[e.uid] || {};
           return {
             ...e,
+            uid: e.uid,
             profilePicture: u.profilePicture || "/default-avatar.png",
-            firstName: u.firstName || u.fullName || e.uid,
+            firstName: u.firstName || u.fullName || e.uid || "Unknown",
             totalPoints: Number(e.totalPoints || 0),
             currentRank:
               typeof e.currentRank === "number" && e.currentRank > 0
@@ -68,30 +93,34 @@ export default function Leaderboard() {
           };
         });
 
-        let sorted = [...rows];
+        // Sort
+        let sorted;
         if (activeTab === "All-Time") {
-          sorted.sort((a, b) => b.totalPoints - a.totalPoints);
+          sorted = [...rows].sort((a, b) => b.totalPoints - a.totalPoints);
         } else {
-          sorted.sort((a, b) => {
-            const aRank = a.currentRank ?? Infinity;
-            const bRank = b.currentRank ?? Infinity;
-            if (aRank !== bRank) return aRank - bRank;
-            return b.totalPoints - a.totalPoints; // fallback
+          sorted = [...rows].sort((a, b) => {
+            const ra = a.currentRank ?? Infinity;
+            const rb = b.currentRank ?? Infinity;
+            if (ra !== rb) return ra - rb;
+            // tie-breaker: higher total first
+            return b.totalPoints - a.totalPoints;
           });
         }
 
         setLeaderboard(sorted);
-      } catch (err) {
-        console.error("Error fetching leaderboard:", err);
+        setLoading(false);
+      },
+      (err) => {
+        console.error("Leaderboard onSnapshot error:", err);
         setLeaderboard([]);
-      } finally {
         setLoading(false);
       }
-    };
+    );
 
-    fetchLeaderboard();
+    return () => unsub();
   }, [collectionName, activeTab]);
 
+  // Optional: show notifications prompt after login
   useEffect(() => {
     if (user && user.notificationsEnabled !== true) {
       const t = setTimeout(() => setShowPopup(true), 5000);
@@ -172,6 +201,7 @@ export default function Leaderboard() {
                   <td className="px-4 py-3 text-center font-bold border-x border-[var(--border-color)]">
                     {rank}
                   </td>
+
                   <td className="px-4 py-3 whitespace-nowrap border-l border-[var(--border-color)]">
                     <div className="flex items-center gap-2">
                       <Image
@@ -184,9 +214,11 @@ export default function Leaderboard() {
                       <span className="font-medium">{entry.firstName}</span>
                     </div>
                   </td>
+
                   <td className="px-4 py-3 text-right font-semibold border-r border-[var(--border-color)]">
                     {entry.totalPoints}
                   </td>
+
                   {activeTab !== "All-Time" && (
                     <td
                       className={`px-2 py-3 text-center font-medium border-x border-[var(--border-color)] ${
