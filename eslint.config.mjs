@@ -10,7 +10,11 @@ const compat = new FlatCompat({
   baseDirectory: __dirname,
 });
 
-// `prettier` last: disables ESLint rules that would conflict with Prettier.
-const eslintConfig = [...compat.extends("next/core-web-vitals"), prettier];
+const eslintConfig = [
+  { ignores: [".next/**", "out/**", "build/**", "next-env.d.ts"] },
+  ...compat.extends("next/core-web-vitals"),
+  // `prettier` last: disables ESLint rules that would conflict with Prettier.
+  prettier,
+];
 
 export default eslintConfig;
