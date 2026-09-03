@@ -40,7 +40,7 @@ export default function WeeklyPicks() {
     document.body.classList.remove(
       "theme-light",
       "theme-dark",
-      "theme-vibrant"
+      "theme-vibrant",
     );
     document.body.classList.add(theme);
   }, []);
@@ -79,7 +79,7 @@ export default function WeeklyPicks() {
           collection(db, "games"),
           where("seasonYear", "==", seasonYear),
           where("seasonType", "==", seasonType),
-          where("week", "==", week)
+          where("week", "==", week),
         );
         const snapshot = await getDocs(gamesQ);
         const filteredGames = snapshot.docs.map((d) => {
@@ -94,13 +94,13 @@ export default function WeeklyPicks() {
         });
 
         filteredGames.sort(
-          (a, b) => new Date(a.date).getTime() - new Date(b.date).getTime()
+          (a, b) => new Date(a.date).getTime() - new Date(b.date).getTime(),
         );
         setGames(filteredGames);
 
         // initialize GOTW wager default (points clamped later by userPoints effect)
         const gotw = filteredGames.find(
-          (g) => String(g.id) === String(gameOfTheWeekId)
+          (g) => String(g.id) === String(gameOfTheWeekId),
         );
         if (gotw && !wagerPick) {
           setWagerPick({ gameId: String(gotw.id), teamId: null, points: 1 });
@@ -123,7 +123,7 @@ export default function WeeklyPicks() {
         const ref = doc(
           db,
           "picks",
-          `${seasonYear}-${seasonType}-week${week}-${user.uid}`
+          `${seasonYear}-${seasonType}-week${week}-${user.uid}`,
         );
         const snap = await getDoc(ref);
         if (snap.exists()) {
@@ -152,12 +152,12 @@ export default function WeeklyPicks() {
         const leaderboardCollection =
           seasonType === "Postseason" ? "leaderboardPostseason" : "leaderboard";
         const pointsDoc = await getDoc(
-          doc(db, leaderboardCollection, user.uid)
+          doc(db, leaderboardCollection, user.uid),
         );
         setUserPoints(
           pointsDoc.exists()
             ? Number((pointsDoc.data() || {}).totalPoints || 0)
-            : 0
+            : 0,
         );
       } catch (e) {
         console.error("Error fetching leaderboard points:", e);
@@ -175,7 +175,7 @@ export default function WeeklyPicks() {
             ...prev,
             points: Math.max(0, Math.min(prev.points || 0, userPoints || 0)),
           }
-        : prev
+        : prev,
     );
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [userPoints]);
@@ -190,7 +190,7 @@ export default function WeeklyPicks() {
           collection(db, "picks"),
           where("seasonYear", "==", seasonYear),
           where("seasonType", "==", seasonType),
-          where("week", "==", week)
+          where("week", "==", week),
         );
         const snapshot = await getDocs(picksQueryRef);
         const picks = snapshot.docs.map((d) => d.data());
@@ -223,10 +223,10 @@ export default function WeeklyPicks() {
     if (!user || !seasonYear || !seasonType || !week) return;
 
     const nonGotwGames = games.filter(
-      (g) => String(g.id) !== String(gameOfTheWeekId)
+      (g) => String(g.id) !== String(gameOfTheWeekId),
     );
     const allPicked = nonGotwGames.every(
-      (game) => predictions[String(game.id)]?.teamId
+      (game) => predictions[String(game.id)]?.teamId,
     );
     if (!allPicked) {
       alert("Please make a prediction for every game before submitting.");
@@ -237,7 +237,7 @@ export default function WeeklyPicks() {
     if (gameOfTheWeekId) {
       if (!wagerPick?.teamId || (wagerPick.points ?? 0) <= 0) {
         alert(
-          "Please make your Game of the Week pick and enter a valid wager."
+          "Please make your Game of the Week pick and enter a valid wager.",
         );
         return;
       }
@@ -253,12 +253,12 @@ export default function WeeklyPicks() {
       const ref = doc(
         db,
         "picks",
-        `${seasonYear}-${seasonType}-week${week}-${user.uid}`
+        `${seasonYear}-${seasonType}-week${week}-${user.uid}`,
       );
       await setDoc(
         ref,
         { userId: user.uid, seasonYear, seasonType, week, predictions },
-        { merge: true }
+        { merge: true },
       );
 
       // Place/Update Wager via API (server validates against kickoff & points)
@@ -339,7 +339,7 @@ export default function WeeklyPicks() {
                         onClick={() =>
                           handlePredictionChange(
                             String(game.id),
-                            String(team.id)
+                            String(team.id),
                           )
                         }
                       >
@@ -354,7 +354,7 @@ export default function WeeklyPicks() {
                           onChange={() =>
                             handlePredictionChange(
                               String(game.id),
-                              String(team.id)
+                              String(team.id),
                             )
                           }
                           className="hidden"
@@ -419,7 +419,7 @@ export default function WeeklyPicks() {
                             // keep local predictions in sync so "all picked" logic is happy
                             handlePredictionChange(
                               String(game.id),
-                              String(team.id)
+                              String(team.id),
                             );
                           }}
                         >
@@ -448,10 +448,10 @@ export default function WeeklyPicks() {
                     onChange={(e) => {
                       const n = Math.max(
                         0,
-                        Math.min(parseInt(e.target.value) || 0, userPoints)
+                        Math.min(parseInt(e.target.value) || 0, userPoints),
                       );
                       setWagerPick((prev) =>
-                        prev ? { ...prev, points: n } : prev
+                        prev ? { ...prev, points: n } : prev,
                       );
                     }}
                     disabled={!userPoints || isSubmitting}
@@ -546,8 +546,8 @@ export default function WeeklyPicks() {
                       .filter(
                         (entry) =>
                           String(
-                            entry.predictions?.[String(game.id)]?.teamId
-                          ) === String(team.id)
+                            entry.predictions?.[String(game.id)]?.teamId,
+                          ) === String(team.id),
                       )
                       .sort((a, b) => {
                         const nameA = userMap[a.userId]?.firstName || a.userId;
@@ -559,8 +559,8 @@ export default function WeeklyPicks() {
                       game.winnerId == null
                         ? ""
                         : String(game.winnerId) === String(team.id)
-                        ? "text-green-600"
-                        : "text-red-600";
+                          ? "text-green-600"
+                          : "text-red-600";
 
                     return (
                       <div key={team.id}>
@@ -584,8 +584,8 @@ export default function WeeklyPicks() {
                               isCorrect === true
                                 ? "text-green-600"
                                 : isCorrect === false
-                                ? "text-red-600"
-                                : "";
+                                  ? "text-red-600"
+                                  : "";
 
                             return (
                               <li key={entry.userId} className={userColor}>

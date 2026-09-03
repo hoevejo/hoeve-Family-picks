@@ -114,7 +114,7 @@ export default function Leaderboard() {
         console.error("Leaderboard onSnapshot error:", err);
         setLeaderboard([]);
         setLoading(false);
-      }
+      },
     );
 
     return () => unsub();
@@ -225,8 +225,8 @@ export default function Leaderboard() {
                         change > 0
                           ? "text-green-500"
                           : change < 0
-                          ? "text-red-500"
-                          : "text-gray-500"
+                            ? "text-red-500"
+                            : "text-gray-500"
                       }`}
                     >
                       {change > 0 && "▲ "}

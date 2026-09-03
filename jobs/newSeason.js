@@ -34,7 +34,7 @@ export async function resetForNewSeason() {
     snapshot.forEach((docSnap) => {
       archiveBatch.set(
         doc(db, `${archivePrefix}/${name}-${docSnap.id}`),
-        docSnap.data()
+        docSnap.data(),
       );
       deleteBatch.delete(doc(db, name, docSnap.id));
     });

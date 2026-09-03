@@ -10,7 +10,7 @@ export async function GET() {
     console.error("FetchGames job failed:", error);
     return Response.json(
       { success: false, error: error.message },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }

@@ -19,7 +19,7 @@ export async function GET(req) {
     console.error("Reminder error:", err);
     return Response.json(
       { success: false, error: err.message },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }

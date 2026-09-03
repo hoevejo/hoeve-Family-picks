@@ -9,7 +9,7 @@ import { getDocs, collectionGroup } from "firebase/firestore";
 webpush.setVapidDetails(
   process.env.VAPID_SUBJECT,
   process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY,
-  process.env.VAPID_PRIVATE_KEY
+  process.env.VAPID_PRIVATE_KEY,
 );
 
 export async function POST(request) {
@@ -28,7 +28,7 @@ export async function POST(request) {
 
     // Grab all subscriptions from all users
     const subsSnap = await getDocs(
-      collectionGroup(db, "notificationSubscriptions")
+      collectionGroup(db, "notificationSubscriptions"),
     );
 
     let successCount = 0;
@@ -70,7 +70,7 @@ export async function POST(request) {
     console.error("⚠️ Notification error:", err);
     return Response.json(
       { success: false, error: err.message },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }

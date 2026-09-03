@@ -21,7 +21,7 @@ export async function calculateWeeklyResults() {
       String(seasonType || ""),
       seasonTypeSlug,
       seasonTypeSlug.charAt(0).toUpperCase() + seasonTypeSlug.slice(1),
-    ])
+    ]),
   ).filter(Boolean);
 
   const recapDocId = `${seasonYear}-${seasonTypeSlug}-week${week}`;
@@ -59,11 +59,11 @@ export async function calculateWeeklyResults() {
 
   // --- 2) Fill gaps from ESPN (winners/ties)
   const missing = gameIdsForWeek.filter(
-    (k) => !winners.has(k) && !finalTies.has(k)
+    (k) => !winners.has(k) && !finalTies.has(k),
   );
   if (missing.length > 0) {
     const res = await fetch(
-      "https://site.api.espn.com/apis/site/v2/sports/football/nfl/scoreboard"
+      "https://site.api.espn.com/apis/site/v2/sports/football/nfl/scoreboard",
     );
     const sb = await res.json();
     const events = sb?.events || [];
@@ -105,7 +105,7 @@ export async function calculateWeeklyResults() {
 
   // --- Strictness: allow ties, require no unresolved games
   const unresolved = gameIdsForWeek.filter(
-    (k) => !winners.has(k) && !finalTies.has(k)
+    (k) => !winners.has(k) && !finalTies.has(k),
   );
   if (unresolved.length > 0) {
     console.log("⚠️ Some games unresolved; aborting grading:", unresolved);
@@ -278,7 +278,7 @@ export async function calculateWeeklyResults() {
         currentRank: newRank,
         positionChange,
       },
-      { merge: true }
+      { merge: true },
     );
 
     cur.previousRank = prevRank;
@@ -310,7 +310,7 @@ export async function calculateWeeklyResults() {
         lastWeekPoints: add,
         lastGradedKey: recapDocId,
       },
-      { merge: true }
+      { merge: true },
     );
   }
 
@@ -324,20 +324,20 @@ export async function calculateWeeklyResults() {
     : 0;
 
   const topScorers = updated.filter(
-    (u) => (u.lastWeekPoints ?? 0) === highestScore
+    (u) => (u.lastWeekPoints ?? 0) === highestScore,
   );
   const lowestScorers = updated.filter(
-    (u) => (u.lastWeekPoints ?? 0) === lowestScore
+    (u) => (u.lastWeekPoints ?? 0) === lowestScore,
   );
 
   const posChanges = updated.map((u) => u.positionChange ?? 0);
   const maxRise = posChanges.length ? Math.max(...posChanges) : 0;
   const maxDrop = posChanges.length ? Math.min(...posChanges) : 0;
   const biggestRisers = updated.filter(
-    (u) => (u.positionChange ?? 0) === maxRise
+    (u) => (u.positionChange ?? 0) === maxRise,
   );
   const biggestFallers = updated.filter(
-    (u) => (u.positionChange ?? 0) === maxDrop
+    (u) => (u.positionChange ?? 0) === maxDrop,
   );
 
   await db.doc(`weeklyRecap/${recapDocId}`).set({

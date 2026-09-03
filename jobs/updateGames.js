@@ -20,7 +20,7 @@ export async function fetchAndStoreGames(opts = {}) {
   const cfg = cfgSnap.exists ? cfgSnap.data() || {} : {};
 
   const cfgSeasonYear = Number(
-    opts.seasonYear ?? cfg.seasonYear ?? new Date().getFullYear()
+    opts.seasonYear ?? cfg.seasonYear ?? new Date().getFullYear(),
   );
   const cfgSeasonType = String(opts.seasonType ?? cfg.seasonType ?? "Regular"); // "Regular" | "Postseason"
   const cfgWeek = Number(opts.week ?? cfg.week ?? 1);
@@ -29,12 +29,12 @@ export async function fetchAndStoreGames(opts = {}) {
   const deadlineMs = cfg?.deadline?.toDate
     ? cfg.deadline.toDate().getTime()
     : cfg?.deadline?.seconds
-    ? cfg.deadline.seconds * 1000
-    : null;
+      ? cfg.deadline.seconds * 1000
+      : null;
   const deadlinePassed =
     typeof deadlineMs === "number" ? Date.now() > deadlineMs : false;
   const useNextWeek = Boolean(
-    opts.useNextWeek || (!opts.week && deadlinePassed)
+    opts.useNextWeek || (!opts.week && deadlinePassed),
   );
 
   const targetWeek = useNextWeek ? cfgWeek + 1 : cfgWeek;
@@ -65,7 +65,7 @@ export async function fetchAndStoreGames(opts = {}) {
 
   // earliest kickoff -> deadline
   const earliestGame = games.reduce((earliest, cur) =>
-    new Date(cur.date) < new Date(earliest.date) ? cur : earliest
+    new Date(cur.date) < new Date(earliest.date) ? cur : earliest,
   );
 
   // ---- write games (batch)
@@ -137,7 +137,7 @@ export async function fetchAndStoreGames(opts = {}) {
         hasResult: !!(isFinal && winnerId),
         lastUpdated: new Date().toISOString(),
       },
-      { merge: true }
+      { merge: true },
     );
   }
 
@@ -158,7 +158,7 @@ export async function fetchAndStoreGames(opts = {}) {
     const idx = Math.floor(Math.random() * games.length);
     gameOfTheWeekId = String(games[idx].id);
     console.log(
-      `🎲 GOTW for ${targetYear}-${seasonTypeSlug}-week${targetWeek}: ${gameOfTheWeekId}`
+      `🎲 GOTW for ${targetYear}-${seasonTypeSlug}-week${targetWeek}: ${gameOfTheWeekId}`,
     );
   }
 
@@ -176,7 +176,7 @@ export async function fetchAndStoreGames(opts = {}) {
       gameOfTheWeekId,
       lastUpdated: new Date().toISOString(),
     },
-    { merge: true }
+    { merge: true },
   );
 
   return {
