@@ -11,7 +11,7 @@ export async function GET() {
     console.error("Error during clearForNewSeason:", error);
     return NextResponse.json(
       { success: false, error: error.message },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }

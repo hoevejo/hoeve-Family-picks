@@ -21,7 +21,7 @@ export default function GamePredictionView({
         collection(db, "picks"),
         where("seasonYear", "==", seasonYear),
         where("seasonType", "==", seasonType),
-        where("week", "==", week)
+        where("week", "==", week),
       );
       const snapshot = await getDocs(q);
       const allPicks = snapshot.docs.map((doc) => ({

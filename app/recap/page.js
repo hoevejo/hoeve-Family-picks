@@ -110,7 +110,7 @@ export default function WeeklyRecapPage() {
     if (!recap?.scores?.length) return 0;
     const total = recap.scores.reduce(
       (sum, u) => sum + (Number(u.score) || 0),
-      0
+      0,
     );
     return (total / recap.scores.length).toFixed(2);
   }, [recap]);

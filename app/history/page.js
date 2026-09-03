@@ -38,7 +38,7 @@ export default function HistoryPage() {
         setSelectedWeek(Number(recapWeek));
         // Normalize initial UI value to "Regular"/"Postseason"
         setSelectedSeasonType(
-          toSlug(seasonType) === "postseason" ? "Postseason" : "Regular"
+          toSlug(seasonType) === "postseason" ? "Postseason" : "Regular",
         );
       } catch (e) {
         console.error(e);
@@ -162,7 +162,7 @@ export default function HistoryPage() {
     if (!history?.recap?.scores?.length) return 0;
     const total = history.recap.scores.reduce(
       (s, u) => s + (Number(u.score) || 0),
-      0
+      0,
     );
     return (total / history.recap.scores.length).toFixed(2);
   }, [history]);

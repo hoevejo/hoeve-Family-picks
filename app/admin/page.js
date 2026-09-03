@@ -63,10 +63,10 @@ export default function AdminDashboard() {
             deadline: data.deadline?.toDate
               ? data.deadline.toDate().toISOString().slice(0, 16) // yyyy-mm-ddThh:mm
               : data.deadline?.seconds
-              ? new Date(data.deadline.seconds * 1000)
-                  .toISOString()
-                  .slice(0, 16)
-              : "",
+                ? new Date(data.deadline.seconds * 1000)
+                    .toISOString()
+                    .slice(0, 16)
+                : "",
             recapWeek: data.recapWeek ?? "",
             gameOfTheWeekId: data.gameOfTheWeekId
               ? String(data.gameOfTheWeekId)
@@ -103,7 +103,7 @@ export default function AdminDashboard() {
           collection(db, "games"),
           where("seasonYear", "==", Number(config.seasonYear)),
           where("seasonType", "==", String(config.seasonType)),
-          where("week", "==", Number(config.week))
+          where("week", "==", Number(config.week)),
         );
         const snap = await getDocs(qRef);
         const list = snap.docs
@@ -203,7 +203,7 @@ export default function AdminDashboard() {
 
   const handleResetSeason = async () => {
     const confirmed = confirm(
-      "Are you sure you want to clear and archive the current season?\n\nThis will delete all picks, games, and weekly recaps. It cannot be undone."
+      "Are you sure you want to clear and archive the current season?\n\nThis will delete all picks, games, and weekly recaps. It cannot be undone.",
     );
     if (!confirmed) return;
 

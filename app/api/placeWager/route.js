@@ -17,7 +17,7 @@ export async function POST(req) {
     if (!gotwId) {
       return NextResponse.json(
         { error: "GOTW not configured" },
-        { status: 400 }
+        { status: 400 },
       );
     }
 
@@ -33,7 +33,7 @@ export async function POST(req) {
     if (!Number.isInteger(wagerPts) || wagerPts < 1 || wagerPts > userTotal) {
       return NextResponse.json(
         { error: `Points must be 1..${userTotal}` },
-        { status: 400 }
+        { status: 400 },
       );
     }
 
@@ -44,7 +44,7 @@ export async function POST(req) {
     if (!gameSnap.exists) {
       return NextResponse.json(
         { error: "GOTW game not found" },
-        { status: 400 }
+        { status: 400 },
       );
     }
 
@@ -53,7 +53,7 @@ export async function POST(req) {
     if (!kickoff || Date.now() >= kickoff) {
       return NextResponse.json(
         { error: "Wager window is locked" },
-        { status: 400 }
+        { status: 400 },
       );
     }
 
@@ -63,7 +63,7 @@ export async function POST(req) {
     if (team !== homeId && team !== awayId) {
       return NextResponse.json(
         { error: "Team must be home or away" },
-        { status: 400 }
+        { status: 400 },
       );
     }
 
@@ -85,7 +85,7 @@ export async function POST(req) {
         [`predictions.${gotwId}.teamId`]: team,
         [`predictions.${gotwId}.isCorrect`]: null,
       },
-      { merge: true }
+      { merge: true },
     );
 
     return NextResponse.json({ success: true, maxAllowed: userTotal });

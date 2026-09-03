@@ -19,11 +19,11 @@ export async function updateIsCorrectJob() {
       String(seasonType || ""),
       seasonTypeSlug,
       seasonTypeSlug.charAt(0).toUpperCase() + seasonTypeSlug.slice(1), // "Regular"
-    ])
+    ]),
   ).filter(Boolean);
 
   const res = await fetch(
-    "https://site.api.espn.com/apis/site/v2/sports/football/nfl/scoreboard"
+    "https://site.api.espn.com/apis/site/v2/sports/football/nfl/scoreboard",
   );
   const json = await res.json();
   const events = json.events || [];
@@ -101,8 +101,8 @@ export async function updateIsCorrectJob() {
   if (picksSnap.empty) {
     console.log(
       `ℹ️ No picks matched for seasonYear=${seasonYear}, week=${week}, seasonType in ${JSON.stringify(
-        seasonTypeVariants
-      )}`
+        seasonTypeVariants,
+      )}`,
     );
     return { success: true, updatedGames, updatedPicks };
   }
@@ -143,7 +143,7 @@ export async function updateIsCorrectJob() {
   if (opsInBatch > 0) await batch.commit();
 
   console.log(
-    `✅ updateIsCorrect finished. Games updated: ${updatedGames}, Picks updated: ${updatedPicks}`
+    `✅ updateIsCorrect finished. Games updated: ${updatedGames}, Picks updated: ${updatedPicks}`,
   );
   return { success: true, updatedGames, updatedPicks };
 }

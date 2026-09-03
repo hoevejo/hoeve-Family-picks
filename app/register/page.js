@@ -48,7 +48,7 @@ export default function Register() {
 
     if (!validatePasswordStrength(form.password)) {
       return toast.error(
-        "Password must be at least 8 characters long and contain both letters and numbers."
+        "Password must be at least 8 characters long and contain both letters and numbers.",
       );
     }
 
@@ -63,7 +63,7 @@ export default function Register() {
       const userCredential = await createUserWithEmailAndPassword(
         auth,
         form.email,
-        form.password
+        form.password,
       );
       const newUser = userCredential.user;
 

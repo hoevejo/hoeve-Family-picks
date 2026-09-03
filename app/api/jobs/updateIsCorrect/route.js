@@ -10,7 +10,7 @@ export async function GET() {
     console.error("Error during updateIsCorrect:", error);
     return Response.json(
       { success: false, error: error.message },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }
