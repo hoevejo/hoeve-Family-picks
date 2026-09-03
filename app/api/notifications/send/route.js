@@ -5,12 +5,19 @@ export const runtime = "nodejs";
 import { db } from "@/lib/firebaseAdmin";
 import { getDocs, collectionGroup } from "firebase/firestore";
 
-// Configure VAPID
-webpush.setVapidDetails(
-  process.env.VAPID_SUBJECT,
-  process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY,
-  process.env.VAPID_PRIVATE_KEY,
-);
+let vapidConfigured = false;
+
+// Configure VAPID on first request rather than at module load — setVapidDetails
+// throws when VAPID_SUBJECT is missing, which would break `next build`.
+function configureVapid() {
+  if (vapidConfigured) return;
+  webpush.setVapidDetails(
+    process.env.VAPID_SUBJECT,
+    process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY,
+    process.env.VAPID_PRIVATE_KEY,
+  );
+  vapidConfigured = true;
+}
 
 export async function POST(request) {
   // ✅ Check for authorization header
@@ -22,6 +29,8 @@ export async function POST(request) {
   }
 
   try {
+    configureVapid();
+
     // Accept title, body, and optional URL
     const { title, body, url } = await request.json();
     const payload = JSON.stringify({ title, body, url });
