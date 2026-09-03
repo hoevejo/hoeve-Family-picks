@@ -5,6 +5,7 @@ import { db } from "../../lib/firebaseConfig";
 import { getDoc, doc, getDocs, collection } from "firebase/firestore";
 import Image from "next/image";
 import { Toaster, toast } from "react-hot-toast";
+import RecapSection from "../../components/RecapSection";
 
 export default function WeeklyRecapPage() {
   const [recap, setRecap] = useState(null);
@@ -115,39 +116,6 @@ export default function WeeklyRecapPage() {
     return (total / recap.scores.length).toFixed(2);
   }, [recap]);
 
-  const Section = ({ title, users = [] }) => (
-    <div className="bg-[var(--card-color)] border border-[var(--border-color)] rounded-xl p-4 mb-4 shadow">
-      <h2 className="text-xl font-bold mb-3 text-[var(--text-color)]">
-        {title}
-      </h2>
-      {users.length === 0 ? (
-        <p className="opacity-70">No data.</p>
-      ) : (
-        <ul className="space-y-2">
-          {users.map((u) => (
-            <li key={u.uid} className="flex items-center gap-3">
-              <Image
-                src={u.profilePicture || "/default-avatar.png"}
-                alt={u.fullName || u.uid}
-                width={32}
-                height={32}
-                className="rounded-full border border-[var(--border-color)]"
-              />
-              <span className="text-[var(--text-color)] font-medium">
-                {u.fullName || u.uid}
-              </span>
-              {u.score !== undefined && (
-                <span className="ml-auto text-[var(--text-color)] font-semibold">
-                  {u.score} pts
-                </span>
-              )}
-            </li>
-          ))}
-        </ul>
-      )}
-    </div>
-  );
-
   if (loading) {
     return (
       <>
@@ -187,10 +155,10 @@ export default function WeeklyRecapPage() {
       </h1>
 
       <div className="max-w-3xl mx-auto space-y-6">
-        <Section title="🔥 Top Scorers" users={recap.topScorers} />
-        <Section title="❄️ Lowest Scorers" users={recap.lowestScorers} />
-        <Section title="📈 Biggest Risers" users={recap.biggestRisers} />
-        <Section title="📉 Biggest Fallers" users={recap.biggestFallers} />
+        <RecapSection title="🔥 Top Scorers" users={recap.topScorers} />
+        <RecapSection title="❄️ Lowest Scorers" users={recap.lowestScorers} />
+        <RecapSection title="📈 Biggest Risers" users={recap.biggestRisers} />
+        <RecapSection title="📉 Biggest Fallers" users={recap.biggestFallers} />
 
         <div className="bg-[var(--card-color)] border border-[var(--border-color)] rounded-xl p-4 shadow">
           <h2 className="text-xl font-bold mb-3 text-[var(--text-color)]">
