@@ -2,7 +2,10 @@
 const nextConfig = {
   reactStrictMode: true,
   images: {
-    domains: ["api.dicebear.com", "a.espncdn.com"],
+    remotePatterns: [
+      { protocol: "https", hostname: "a.espncdn.com" },
+      { protocol: "https", hostname: "api.dicebear.com" },
+    ],
   },
 };
 

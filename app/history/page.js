@@ -6,6 +6,7 @@ import { getDoc, doc, collection, getDocs } from "firebase/firestore";
 import Image from "next/image";
 import GamePredictionView from "../../components/GamePredictionView";
 import { Toaster, toast } from "react-hot-toast";
+import RecapSection from "../../components/RecapSection";
 
 const toSlug = (t) => {
   const s = (t || "").toString().toLowerCase();
@@ -167,39 +168,6 @@ export default function HistoryPage() {
     return (total / history.recap.scores.length).toFixed(2);
   }, [history]);
 
-  const Section = ({ title, users = [] }) => (
-    <div className="bg-[var(--card-color)] border border-[var(--border-color)] rounded-xl p-4 mb-4 shadow">
-      <h2 className="text-xl font-bold mb-3 text-[var(--text-color)]">
-        {title}
-      </h2>
-      {users.length === 0 ? (
-        <p className="opacity-70">No data.</p>
-      ) : (
-        <ul className="space-y-2">
-          {users.map((u) => (
-            <li key={u.uid} className="flex items-center gap-3">
-              <Image
-                src={u.profilePicture || "/default-avatar.png"}
-                alt={u.fullName || u.uid}
-                width={32}
-                height={32}
-                className="rounded-full border border-[var(--border-color)]"
-              />
-              <span className="text-[var(--text-color)] font-medium">
-                {u.fullName || u.uid}
-              </span>
-              {u.score !== undefined && (
-                <span className="ml-auto text-[var(--text-color)] font-semibold">
-                  {u.score} pts
-                </span>
-              )}
-            </li>
-          ))}
-        </ul>
-      )}
-    </div>
-  );
-
   return (
     <div className="min-h-screen px-4 py-6 bg-[var(--bg-color)] text-[var(--text-color)] transition-colors">
       <Toaster position="top-center" />
@@ -262,16 +230,19 @@ export default function HistoryPage() {
             {selectedYear})
           </h2>
 
-          <Section title="🔥 Top Scorers" users={history.recap?.topScorers} />
-          <Section
+          <RecapSection
+            title="🔥 Top Scorers"
+            users={history.recap?.topScorers}
+          />
+          <RecapSection
             title="❄️ Lowest Scorers"
             users={history.recap?.lowestScorers}
           />
-          <Section
+          <RecapSection
             title="📈 Biggest Risers"
             users={history.recap?.biggestRisers}
           />
-          <Section
+          <RecapSection
             title="📉 Biggest Fallers"
             users={history.recap?.biggestFallers}
           />

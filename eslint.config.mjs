@@ -1,19 +1,20 @@
-import { dirname } from "path";
-import { fileURLToPath } from "url";
-import { FlatCompat } from "@eslint/eslintrc";
+import next from "eslint-config-next/core-web-vitals";
 import prettier from "eslint-config-prettier";
 
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = dirname(__filename);
-
-const compat = new FlatCompat({
-  baseDirectory: __dirname,
-});
-
+/** @type {import('eslint').Linter.Config[]} */
 const eslintConfig = [
   { ignores: [".next/**", "out/**", "build/**", "next-env.d.ts"] },
-  ...compat.extends("next/core-web-vitals"),
-  // `prettier` last: disables ESLint rules that would conflict with Prettier.
+  ...next,
+  // eslint-plugin-react-hooks v6 (via eslint-config-next 16) adds
+  // React-Compiler-oriented rules that are stricter than this codebase.
+  // Keep them visible as warnings rather than blocking.
+  {
+    rules: {
+      "react-hooks/set-state-in-effect": "warn",
+      "react-hooks/immutability": "warn",
+    },
+  },
+  // `prettier` last: turns off ESLint rules that conflict with Prettier.
   prettier,
 ];
 
