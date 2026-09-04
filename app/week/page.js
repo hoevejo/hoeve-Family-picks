@@ -39,6 +39,8 @@ export default function WeeklyPicks() {
   const [gameOfTheWeekId, setGameOfTheWeekId] = useState(null);
   const [wagerPick, setWagerPick] = useState(null); // { gameId, teamId, points }
   const [userPoints, setUserPoints] = useState(0);
+  const [wagerMaxPoints, setWagerMaxPoints] = useState(5);
+  const maxWagerPoints = Math.min(userPoints, wagerMaxPoints);
   const [isSubmitting, setIsSubmitting] = useState(false); // 👈 NEW
 
   // theme
@@ -63,6 +65,8 @@ export default function WeeklyPicks() {
           setSeasonYear(c.seasonYear);
           setSeasonType(normalizeSeasonType(c.seasonType));
           if (c.gameOfTheWeekId) setGameOfTheWeekId(String(c.gameOfTheWeekId));
+          if (c.wagerMaxPoints != null)
+            setWagerMaxPoints(Number(c.wagerMaxPoints));
 
           if (c.deadline?.seconds) {
             const deadlineDate = new Date(c.deadline.seconds * 1000);
@@ -105,7 +109,7 @@ export default function WeeklyPicks() {
         );
         setGames(filteredGames);
 
-        // initialize GOTW wager default (points clamped later by userPoints effect)
+        // initialize GOTW wager default (points clamped later by the maxWagerPoints effect)
         const gotw = filteredGames.find(
           (g) => String(g.id) === String(gameOfTheWeekId),
         );
@@ -172,19 +176,19 @@ export default function WeeklyPicks() {
     fetchPoints();
   }, [user?.uid, seasonType]);
 
-  // clamp wager to available points whenever points change
+  // clamp wager to the lesser of available points and the configured cap
   useEffect(() => {
     if (!wagerPick) return;
     setWagerPick((prev) =>
       prev
         ? {
             ...prev,
-            points: Math.max(0, Math.min(prev.points || 0, userPoints || 0)),
+            points: Math.max(0, Math.min(prev.points || 0, maxWagerPoints)),
           }
         : prev,
     );
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [userPoints]);
+  }, [maxWagerPoints]);
 
   // after deadline: fetch everyone’s picks + users
   useEffect(() => {
@@ -248,8 +252,8 @@ export default function WeeklyPicks() {
         );
         return;
       }
-      if (wagerPick.points > userPoints || wagerPick.points < 0) {
-        alert(`Wager must be between 0 and ${userPoints} points.`);
+      if (wagerPick.points > maxWagerPoints || wagerPick.points < 0) {
+        alert(`Wager must be between 0 and ${maxWagerPoints} points.`);
         return;
       }
     }
@@ -353,7 +357,7 @@ export default function WeeklyPicks() {
                           ${
                             predictions[String(game.id)]?.teamId ===
                             String(team.id)
-                              ? "border-blue-500 bg-blue-100 shadow-md"
+                              ? "border-blue-500 bg-blue-100 text-blue-900 shadow-md"
                               : "border-[var(--border-color)] bg-[var(--card-color)] hover:bg-[var(--hover-color)]"
                           }`}
                         onClick={() =>
@@ -424,7 +428,7 @@ export default function WeeklyPicks() {
                           className={`w-36 sm:w-40 h-44 sm:h-48 flex flex-col items-center justify-center text-center p-3 border-2 rounded-lg transition-all
                 ${
                   String(wagerPick?.teamId) === String(team.id)
-                    ? "border-amber-500 bg-amber-50 shadow-md"
+                    ? "border-amber-500 bg-amber-50 text-amber-900 shadow-md"
                     : "border-[var(--border-color)] bg-[var(--card-color)] hover:bg-[var(--hover-color)]"
                 }`}
                           onClick={() => {
@@ -462,22 +466,25 @@ export default function WeeklyPicks() {
                   <input
                     type="number"
                     min={0}
-                    max={userPoints}
+                    max={maxWagerPoints}
                     className="w-32 p-2 border rounded-sm text-center bg-[var(--card-color)] border-[var(--border-color)]"
                     value={wagerPick?.points ?? ""}
                     onChange={(e) => {
                       const n = Math.max(
                         0,
-                        Math.min(parseInt(e.target.value) || 0, userPoints),
+                        Math.min(parseInt(e.target.value) || 0, maxWagerPoints),
                       );
                       setWagerPick((prev) =>
                         prev ? { ...prev, points: n } : prev,
                       );
                     }}
-                    disabled={!userPoints || isSubmitting}
+                    disabled={!maxWagerPoints || isSubmitting}
                   />
                   <p className="text-xs opacity-70 mt-1">
-                    You have {userPoints} points available.
+                    You can risk up to {maxWagerPoints} points this week
+                    {maxWagerPoints < userPoints
+                      ? ` (capped at ${wagerMaxPoints}; you have ${userPoints}).`
+                      : "."}
                   </p>
                 </div>
               </div>
