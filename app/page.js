@@ -96,6 +96,23 @@ export default function Leaderboard() {
           };
         });
 
+        // Fill in every registered user who doesn't have a leaderboard doc
+        // yet (nobody's been graded this scope this season, or they just
+        // registered) at 0 points, rather than showing an empty table —
+        // this is display-only, doesn't write anything.
+        const presentUids = new Set(rows.map((r) => r.uid));
+        for (const u of Object.values(userMap)) {
+          if (!u?.uid || presentUids.has(u.uid)) continue;
+          rows.push({
+            uid: u.uid,
+            profilePicture: u.profilePicture || "/default-avatar.png",
+            firstName: u.firstName || u.fullName || u.uid || "Unknown",
+            totalPoints: 0,
+            currentRank: null,
+            positionChange: 0,
+          });
+        }
+
         // Sort
         let sorted;
         if (activeTab === "All-Time") {
