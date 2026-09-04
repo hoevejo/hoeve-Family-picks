@@ -162,7 +162,11 @@ export async function fetchAndStoreGames(opts = {}) {
       ? String(prev.gameOfTheWeekId)
       : null;
 
-  if (!gameOfTheWeekId) {
+  // Week 1 of a season (regular or postseason -- each scope's leaderboard
+  // starts fresh at 0) starts everyone at 0 points, so there's nothing
+  // meaningful to wager yet. Skip auto-selecting a GOTW that week; the
+  // admin can still set one manually from the dropdown if they want to.
+  if (!gameOfTheWeekId && targetWeek !== 1) {
     // strictly use the current week’s games returned above
     const idx = Math.floor(Math.random() * games.length);
     gameOfTheWeekId = String(games[idx].id);
