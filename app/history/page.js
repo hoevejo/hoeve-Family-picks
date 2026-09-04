@@ -4,9 +4,10 @@ import { useEffect, useState, useMemo } from "react";
 import { db } from "../../lib/firebaseConfig";
 import { getDoc, doc, collection, getDocs } from "firebase/firestore";
 import Image from "next/image";
-import GamePredictionView from "../../components/GamePredictionView";
+import WeeklyResultsView from "../../components/WeeklyResultsView";
 import { Toaster, toast } from "react-hot-toast";
 import RecapSection from "../../components/RecapSection";
+import { useAuth } from "../../context/AuthContext";
 import {
   normalizeSeasonType,
   seasonTypeLabel,
@@ -14,6 +15,7 @@ import {
 } from "../../lib/seasonType";
 
 export default function HistoryPage() {
+  const { user } = useAuth();
   const [history, setHistory] = useState(null);
   const [loading, setLoading] = useState(true);
 
@@ -119,16 +121,16 @@ export default function HistoryPage() {
           if (ud?.uid) userMap[ud.uid] = ud;
         });
 
-        const fillUser = (arr = []) =>
+        const fillUser = (arr = [], idKey = "uid") =>
           arr.map((e) => {
-            const u = userMap[e.uid] || {};
+            const u = userMap[e[idKey]] || {};
             return {
               ...e,
               fullName:
                 e.fullName ||
                 u.fullName ||
                 [u.firstName, u.lastName].filter(Boolean).join(" ") ||
-                e.uid,
+                e[idKey],
               profilePicture:
                 e.profilePicture || u.profilePicture || "/default-avatar.png",
             };
@@ -148,6 +150,7 @@ export default function HistoryPage() {
             : data.recap,
           // If your top-level leaderboard array is displayed elsewhere, you can hydrate it too
           leaderboard: fillUser(data.leaderboard),
+          picks: fillUser(data.picks, "userId"),
         };
 
         setHistory(hydrated);
@@ -289,13 +292,11 @@ export default function HistoryPage() {
               <h2 className="text-xl font-bold mb-3 text-[var(--text-color)]">
                 🏈 Weekly Matchups
               </h2>
-              <GamePredictionView
+              <WeeklyResultsView
                 games={history.games}
-                seasonYear={selectedYear}
-                // picks docs store the canonical lowercase slug, not the
-                // "Regular"/"Postseason" UI-select value.
-                seasonType={normalizeSeasonType(selectedSeasonType)}
-                week={selectedWeek}
+                picks={history.picks || []}
+                gameOfTheWeekId={history.gameOfTheWeekId}
+                currentUserId={user?.uid}
               />
             </div>
           )}

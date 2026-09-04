@@ -148,10 +148,13 @@ export async function calculateWeeklyResults() {
     let weeklyScore = 0;
     const dotUpdates = {};
 
-    // Grade standard picks
+    // Grade standard picks. gradedPredictions mirrors `preds` but with this
+    // run's freshly-computed isCorrect values overlaid, for history.picks.
+    const gradedPredictions = {};
     for (const [gameIdRaw, pred] of Object.entries(preds)) {
       const gameId = String(gameIdRaw);
       if (!pred) continue;
+      gradedPredictions[gameId] = { ...pred };
 
       if (winners.has(gameId)) {
         const winnerId = winners.get(gameId);
@@ -161,11 +164,13 @@ export async function calculateWeeklyResults() {
           !(already === true || already === false) || already !== newIsCorrect;
         if (needsWrite)
           dotUpdates[`predictions.${gameId}.isCorrect`] = newIsCorrect;
+        gradedPredictions[gameId].isCorrect = newIsCorrect;
         if (newIsCorrect) weeklyScore += 1;
       } else if (finalTies.has(gameId)) {
         if (pred.isCorrect !== null) {
           dotUpdates[`predictions.${gameId}.isCorrect`] = null;
         }
+        gradedPredictions[gameId].isCorrect = null;
       }
     }
 
@@ -216,11 +221,16 @@ export async function calculateWeeklyResults() {
 
     userScores[uid] = (userScores[uid] || 0) + weeklyScore;
     userWeeklyDetails.push({ uid, fullName, score: weeklyScore });
+    // Full graded predictions + wager, not just this run's delta -- history
+    // needs to stand alone once picks get archived away at a season reset.
     weeklyPicks.push({
-      id: pickDoc.id,
       userId: uid,
       fullName,
-      graded: dotUpdates,
+      predictions: gradedPredictions,
+      ...(wager ? { wager } : {}),
+      ...(dotUpdates.wagerResult
+        ? { wagerResult: dotUpdates.wagerResult }
+        : {}),
     });
   }
   if (pending.length) await commitBatch(pending);
@@ -373,6 +383,7 @@ export async function calculateWeeklyResults() {
     },
     picks: weeklyPicks,
     games: historyGames,
+    gameOfTheWeekId,
     createdAt: new Date(),
   });
 

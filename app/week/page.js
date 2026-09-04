@@ -15,6 +15,7 @@ import {
 } from "firebase/firestore";
 import { db, auth } from "../../lib/firebaseConfig";
 import { useAuth } from "../../context/AuthContext";
+import WeeklyResultsView from "../../components/WeeklyResultsView";
 import {
   SEASON_TYPES,
   normalizeSeasonType,
@@ -515,132 +516,18 @@ export default function WeeklyPicks() {
           <h1 className="text-2xl font-bold text-center mb-4">
             Predictions Locked – See What Everyone Picked
           </h1>
-          <div className="space-y-4">
-            {games.map((game) => (
-              <details
-                key={game.id}
-                className="bg-[var(--card-color)] rounded-sm shadow-md"
-              >
-                <summary className="px-4 py-3 font-semibold cursor-pointer flex items-center justify-between gap-2">
-                  <div className="flex items-center gap-2">
-                    {String(game.id) === String(gameOfTheWeekId) && (
-                      <FaStar className="text-yellow-500" />
-                    )}
-
-                    <Image
-                      src={game.homeTeam.logo}
-                      alt={game.homeTeam.name}
-                      width={20}
-                      height={20}
-                    />
-                    <span
-                      className={
-                        game.winnerId
-                          ? String(game.winnerId) === String(game.homeTeam.id)
-                            ? "text-green-600"
-                            : "text-red-600"
-                          : ""
-                      }
-                    >
-                      {game.homeTeam.abbreviation}
-                    </span>
-
-                    <span className="mx-1">vs</span>
-
-                    <Image
-                      src={game.awayTeam.logo}
-                      alt={game.awayTeam.name}
-                      width={20}
-                      height={20}
-                    />
-                    <span
-                      className={
-                        game.winnerId
-                          ? String(game.winnerId) === String(game.awayTeam.id)
-                            ? "text-green-600"
-                            : "text-red-600"
-                          : ""
-                      }
-                    >
-                      {game.awayTeam.abbreviation}
-                    </span>
-                  </div>
-                </summary>
-
-                <div className="p-4 border-t grid grid-cols-1 sm:grid-cols-2 gap-6">
-                  {[game.homeTeam, game.awayTeam].map((team) => {
-                    const usersForTeam = allUserPicks
-                      .filter(
-                        (entry) =>
-                          String(
-                            entry.predictions?.[String(game.id)]?.teamId,
-                          ) === String(team.id),
-                      )
-                      .sort((a, b) => {
-                        const nameA = userMap[a.userId]?.firstName || a.userId;
-                        const nameB = userMap[b.userId]?.firstName || b.userId;
-                        return nameA.localeCompare(nameB);
-                      });
-
-                    const teamColor =
-                      game.winnerId == null
-                        ? ""
-                        : String(game.winnerId) === String(team.id)
-                          ? "text-green-600"
-                          : "text-red-600";
-
-                    return (
-                      <div key={team.id}>
-                        <div className="flex items-center gap-2 mb-2">
-                          <Image
-                            src={team.logo}
-                            alt={team.name}
-                            width={24}
-                            height={24}
-                          />
-                          <span className={`font-semibold ${teamColor}`}>
-                            {team.name}
-                          </span>
-                        </div>
-
-                        <ul className="ml-6 list-disc text-sm text-[var(--text-color)]">
-                          {usersForTeam.map((entry) => {
-                            const pred = entry.predictions?.[String(game.id)];
-                            const isCorrect = pred?.isCorrect;
-                            const userColor =
-                              isCorrect === true
-                                ? "text-green-600"
-                                : isCorrect === false
-                                  ? "text-red-600"
-                                  : "";
-
-                            return (
-                              <li key={entry.userId} className={userColor}>
-                                {entry.userId === user?.uid
-                                  ? "You"
-                                  : userMap[entry.userId]?.firstName ||
-                                    entry.userId}
-                                {/* show wager next to name on GOTW */}
-                                {String(game.id) === String(gameOfTheWeekId) &&
-                                  String(entry.wager?.teamId) ===
-                                    String(team.id) &&
-                                  Number(entry.wager?.points) > 0 && (
-                                    <span className="text-yellow-600">
-                                      {" "}
-                                      ({entry.wager.points} pts)
-                                    </span>
-                                  )}
-                              </li>
-                            );
-                          })}
-                        </ul>
-                      </div>
-                    );
-                  })}
-                </div>
-              </details>
-            ))}
-          </div>
+          <WeeklyResultsView
+            games={games}
+            picks={allUserPicks.map((entry) => ({
+              ...entry,
+              fullName:
+                entry.fullName ||
+                userMap[entry.userId]?.firstName ||
+                entry.userId,
+            }))}
+            gameOfTheWeekId={gameOfTheWeekId}
+            currentUserId={user?.uid}
+          />
         </>
       )}
     </div>
