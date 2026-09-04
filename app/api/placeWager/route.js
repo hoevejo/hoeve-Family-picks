@@ -95,12 +95,15 @@ export async function POST(req) {
     // prediction fields.
     const picksId = picksDocId({ seasonYear, seasonType, week, uid: userId });
     const picksRef = db.doc(`picks/${picksId}`);
+    const profileSnap = await db.doc(`publicProfiles/${userId}`).get();
+    const fullName = profileSnap.data()?.fullName || "";
     await picksRef.set(
       {
         userId,
         seasonYear,
         seasonType,
         week,
+        fullName,
         wager: {
           gameId: gotwId,
           teamId: team,

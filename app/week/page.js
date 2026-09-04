@@ -268,7 +268,14 @@ export default function WeeklyPicks() {
       );
       await setDoc(
         ref,
-        { userId: user.uid, seasonYear, seasonType, week, predictions },
+        {
+          userId: user.uid,
+          seasonYear,
+          seasonType,
+          week,
+          fullName: user.fullName || user.displayName || "",
+          predictions,
+        },
         { merge: true },
       );
 
