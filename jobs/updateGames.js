@@ -3,6 +3,7 @@ import { Timestamp } from "firebase-admin/firestore";
 import { sendNotificationToUser } from "../lib/sendNotification";
 import {
   normalizeSeasonType,
+  seasonTypeLabel,
   weekKey,
   gameDocId,
   espnScoreboardUrl,
@@ -56,7 +57,7 @@ export async function fetchAndStoreGames(opts = {}) {
   if (!games.length) {
     return {
       success: false,
-      message: `No games found for year=${targetYear}, type=${seasonTypeNum}, week=${targetWeek}`,
+      message: `No games found for year=${targetYear}, type=${seasonType}, week=${targetWeek}`,
     };
   }
 
@@ -188,6 +189,16 @@ export async function fetchAndStoreGames(opts = {}) {
     },
     { merge: true },
   );
+
+  // Only on a genuinely new week -- a manual re-fetch to refresh scores
+  // mid-week shouldn't re-announce that predictions just opened.
+  if (targetWeek !== prevWeek) {
+    await sendNotificationToUser({
+      title: "Predictions are open!",
+      body: `${seasonTypeLabel(seasonType)} Week ${targetWeek} games are up -- get your picks in.`,
+      url: "/week",
+    });
+  }
 
   return {
     success: true,

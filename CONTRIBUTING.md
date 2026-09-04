@@ -60,13 +60,36 @@ header `Authorization: Bearer <CRON_SECRET>`. It's a cheap no-op when
 nothing's changed, so a simple always-on interval (no day/hour restriction)
 is fine. Also gated on `CRON_SECRET`, same as the two Vercel crons.
 
+`/api/jobs/sendPredictionReminder` needs the same external-scheduler setup as
+`updateIsCorrect` — a second cron-job.org entry at
+`https://<your-domain>/api/jobs/sendPredictionReminder`, every 15–30 min,
+header `Authorization: Bearer <CRON_SECRET>`. It only actually sends a push
+once the deadline is within 2 hours, and at most once per week (tracked on
+`config/config.lastReminderSentFor`), so the frequent polling is cheap.
+
 `/api/jobs/clearForNewSeason` is manual — destructive, admin-triggered from
 the "Clear & Archive Season" button, gated on the calling admin's Firebase ID
-token. `sendPredictionReminder` isn't wired to anything yet (tracked
-separately, not part of the Firestore schema cleanup).
+token.
+
+## Push notifications
+
+Three triggers, each firing from the job that causes the underlying event —
+not on their own schedule:
+
+| When                            | Where it's sent from                         |
+| ------------------------------- | -------------------------------------------- |
+| Predictions open for a new week | `jobs/updateGames.js`, only on a week change |
+| Deadline approaching            | `jobs/sendPredictionReminder.js`             |
+| Weekly results calculated       | `jobs/calculateWeeklyResults.js`             |
+
+All three call `lib/sendNotification.js`'s `sendNotificationToUser()`, which
+POSTs to `/api/notifications/send` (gated on `NOTIFICATION_SECRET`, a
+server-to-server call — not the same secret as the cron routes above). That
+route sends via `web-push` to every subscription in the
+`notificationSubscriptions` collection group, pruning any that come back
+expired/invalid.
 
 ## Known follow-ups
 
-Tracked in `dev-setup/CHECKLIST.md`: the notifications overhaul (`notifications/send`
-mixes the client and Admin SDKs; `sendPredictionReminder` isn't scheduled),
-writing the Firestore schema down as a doc, and adding a test suite.
+Tracked in `dev-setup/CHECKLIST.md`: writing the Firestore schema down as a
+doc, and adding a test suite.
