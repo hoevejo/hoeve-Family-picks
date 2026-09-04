@@ -64,7 +64,7 @@ is fine. Also gated on `CRON_SECRET`, same as the two Vercel crons.
 `updateIsCorrect` — a second cron-job.org entry at
 `https://<your-domain>/api/jobs/sendPredictionReminder`, every 15–30 min,
 header `Authorization: Bearer <CRON_SECRET>`. It only actually sends a push
-once the deadline is within 2 hours, and at most once per week (tracked on
+once the deadline is within 1 hour, and at most once per week (tracked on
 `config/config.lastReminderSentFor`), so the frequent polling is cheap.
 
 `/api/jobs/clearForNewSeason` is manual — destructive, admin-triggered from
