@@ -42,15 +42,22 @@ export async function POST(req) {
       );
     }
 
-    // ✅ enforce “only up to user’s points”
+    // ✅ enforce "only up to user's points", capped at config.wagerMaxPoints
+    // regardless of standing -- uncapped wagers let a leader dump their
+    // entire lead into one bet and blow the season open in a single week.
+    // Defaults to 15 if the admin hasn't saved a value yet, so the cap is
+    // protective immediately rather than only after someone remembers to
+    // configure it.
     const lbCollection = `leaderboards/${leaderboardScope(seasonType)}/entries`;
     const lbSnap = await db.doc(`${lbCollection}/${userId}`).get();
     const userTotal = Number((lbSnap.data() || {}).totalPoints || 0);
+    const wagerMaxPoints = Math.max(1, Number(cfg.wagerMaxPoints) || 5);
+    const maxAllowed = Math.min(userTotal, wagerMaxPoints);
 
     const wagerPts = Number(points);
-    if (!Number.isInteger(wagerPts) || wagerPts < 1 || wagerPts > userTotal) {
+    if (!Number.isInteger(wagerPts) || wagerPts < 1 || wagerPts > maxAllowed) {
       return NextResponse.json(
-        { error: `Points must be 1..${userTotal}` },
+        { error: `Points must be 1..${maxAllowed}` },
         { status: 400 },
       );
     }
@@ -121,7 +128,7 @@ export async function POST(req) {
       [`predictions.${gotwId}.isCorrect`]: null,
     });
 
-    return NextResponse.json({ success: true, maxAllowed: userTotal });
+    return NextResponse.json({ success: true, maxAllowed });
   } catch (e) {
     console.error(e);
     return NextResponse.json({ error: "Internal error" }, { status: 500 });

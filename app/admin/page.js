@@ -31,6 +31,7 @@ export default function AdminDashboard() {
     deadline: "",
     recapWeek: "",
     gameOfTheWeekId: "",
+    wagerMaxPoints: 5,
   });
 
   const [gamesForWeek, setGamesForWeek] = useState([]);
@@ -66,6 +67,11 @@ export default function AdminDashboard() {
             gameOfTheWeekId: data.gameOfTheWeekId
               ? String(data.gameOfTheWeekId)
               : "",
+            // Default to 5 if unset -- leaving this blank/zero would mean
+            // "unlimited," which is exactly the point-inflation problem
+            // this field exists to fix.
+            wagerMaxPoints:
+              data.wagerMaxPoints != null ? String(data.wagerMaxPoints) : 5,
           }));
         } else {
           console.error("Config document not found.");
@@ -149,6 +155,9 @@ export default function AdminDashboard() {
         ...(config.gameOfTheWeekId
           ? { gameOfTheWeekId: String(config.gameOfTheWeekId) }
           : { gameOfTheWeekId: null }),
+        // Enforced server-side in placeWager -- never allow this to save as
+        // 0/blank, which would mean "unlimited" again.
+        wagerMaxPoints: Math.max(1, Number(config.wagerMaxPoints) || 5),
       };
 
       const configRef = doc(db, "config", "config");
@@ -321,6 +330,23 @@ export default function AdminDashboard() {
           <p className="text-sm opacity-70 mt-1">
             List shows games for Week {config.week} •{" "}
             {seasonTypeLabel(config.seasonType)} • {config.seasonYear}.
+          </p>
+
+          <label className="block font-semibold mb-2 mt-4">
+            Max Wager Points
+          </label>
+          <input
+            type="number"
+            name="wagerMaxPoints"
+            value={config.wagerMaxPoints}
+            onChange={handleChange}
+            min={1}
+            required
+            className="w-full p-2 rounded-sm border bg-[var(--input-bg)] text-[var(--input-text)]"
+          />
+          <p className="text-sm opacity-70 mt-1">
+            Most points anyone can risk on the Game of the Week, regardless of
+            their current total.
           </p>
         </div>
 
