@@ -1,10 +1,11 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
   reactStrictMode: true,
-  // firebase-admin/auth pulls in jwks-rsa -> jose, which has a CJS-requiring-
-  // ESM interop pattern Turbopack's server bundler can't handle -- crashes
-  // every route that imports it with ERR_REQUIRE_ESM. Leaving firebase-admin
-  // as a native Node require() at runtime instead of bundling it avoids that.
+  // Not the fix for the firebase-admin/auth ERR_REQUIRE_ESM crash (that
+  // turned out to be a genuine upstream bug -- jwks-rsa@4.x requiring a
+  // pure-ESM jose@6, fixed via the jose override in pnpm-workspace.yaml,
+  // not a bundling issue at all). Kept as a general good practice for a
+  // large SDK like firebase-admin regardless.
   serverExternalPackages: ["firebase-admin"],
   images: {
     remotePatterns: [

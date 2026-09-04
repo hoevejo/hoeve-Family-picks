@@ -2,6 +2,15 @@
 
 overrides:
   uuid: ^11.1.1
+  # firebase-admin -> jwks-rsa@4.x declares "jose": "^6.1.3" but jose 6 is
+  # pure ESM (no CJS build at all) while jwks-rsa does `require('jose')` --
+  # a genuine upstream packaging bug, not a bundler issue (confirmed: it
+  # crashes identically with serverExternalPackages, i.e. unbundled native
+  # require()). jose 5.x still ships a CJS build and the API surface
+  # jwks-rsa actually uses (importJWK/exportSPKI) is stable across the
+  # major bump. Remove this once jwks-rsa fixes its own require() (tracking:
+  # https://github.com/auth0/node-jwks-rsa) or firebase-admin drops the dep.
+  jose: ^5.9.6
 
 # postcss@8.5.28 was already the pinned version in package-lock.json; it just
 # happens to have been (re)published within pnpm's default 24h
