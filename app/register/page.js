@@ -78,11 +78,23 @@ export default function Register() {
         email: newUser.email,
         createdAt: serverTimestamp(),
         profilePicture: avatarUrl,
-        totalPoints: 0,
-        weeklyPoints: {},
         isAdmin: false,
         notificationsEnabled: false,
         theme: "theme-blue-light",
+      });
+
+      // publicProfiles/{uid} carries only the display fields, world-readable
+      // to any signed-in user -- so pages that just need a name/avatar to
+      // render a leaderboard/recap/history entry don't have to pull every
+      // user's full users/{uid} doc (email, isAdmin, notificationsEnabled)
+      // to do it.
+      await setDoc(doc(db, "publicProfiles", newUser.uid), {
+        uid: newUser.uid,
+        firstName: form.firstName,
+        lastName: form.lastName,
+        fullName,
+        displayName: fullName,
+        profilePicture: avatarUrl,
       });
 
       const createLeaderboardDoc = (uid, fullName) => ({

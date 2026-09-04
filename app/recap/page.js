@@ -58,8 +58,10 @@ export default function WeeklyRecapPage() {
 
         const recapData = recapDoc.data();
 
-        // Build user map for names/avatars
-        const usersSnap = await getDocs(collection(db, "users"));
+        // Build user map for names/avatars -- publicProfiles, not users,
+        // which carries private fields that have no business being broadly
+        // scanned here.
+        const usersSnap = await getDocs(collection(db, "publicProfiles"));
         const userMap = {};
         usersSnap.forEach((u) => {
           const ud = u.data();

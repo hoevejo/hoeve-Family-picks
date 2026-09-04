@@ -207,7 +207,8 @@ export default function WeeklyPicks() {
         const picks = snapshot.docs.map((d) => d.data());
         setAllUserPicks(picks);
 
-        const usersSnapshot = await getDocs(collection(db, "users"));
+        // publicProfiles, not users -- only display fields are needed here.
+        const usersSnapshot = await getDocs(collection(db, "publicProfiles"));
         const map = {};
         usersSnapshot.forEach((u) => {
           const data = u.data();

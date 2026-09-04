@@ -62,12 +62,16 @@ export default function Leaderboard() {
 
         const raw = snap.docs.map((d) => ({ id: d.id, ...d.data() }));
 
-        // Always fetch users fresh (server) so names/avatars update immediately
+        // Always fetch profiles fresh (server) so names/avatars update
+        // immediately. publicProfiles, not users -- this is a broad,
+        // unfiltered collection scan visible to any signed-in client, and
+        // users/{uid} carries private fields (email, isAdmin,
+        // notificationsEnabled) that have no business being fetched here.
         let usersSnap;
         try {
-          usersSnap = await getDocsFromServer(collection(db, "users"));
+          usersSnap = await getDocsFromServer(collection(db, "publicProfiles"));
         } catch {
-          usersSnap = await getDocs(collection(db, "users")); // fallback
+          usersSnap = await getDocs(collection(db, "publicProfiles")); // fallback
         }
 
         const userMap = {};

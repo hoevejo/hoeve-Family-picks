@@ -1,7 +1,7 @@
 "use client";
 import { useState, useEffect } from "react";
 import { useAuth } from "../../context/AuthContext";
-import { doc, updateDoc } from "firebase/firestore";
+import { doc, updateDoc, setDoc } from "firebase/firestore";
 import { db } from "../../lib/firebaseConfig";
 import Image from "next/image";
 import toast from "react-hot-toast";
@@ -88,6 +88,13 @@ export default function ProfilePage() {
           firstName,
           lastName,
         });
+        // setDoc(merge) rather than updateDoc -- doesn't assume the
+        // publicProfiles/{uid} doc already exists.
+        await setDoc(
+          doc(db, "publicProfiles", user.uid),
+          { fullName, firstName, lastName },
+          { merge: true },
+        );
 
         localStorage.setItem("firstName", firstName);
         localStorage.setItem("lastName", lastName);
@@ -102,6 +109,11 @@ export default function ProfilePage() {
         await updateDoc(doc(db, "leaderboard", user.uid), {
           profilePicture: finalUrl,
         });
+        await setDoc(
+          doc(db, "publicProfiles", user.uid),
+          { profilePicture: finalUrl },
+          { merge: true },
+        );
         setForm((prev) => ({ ...prev, profilePicture: finalUrl }));
       } else if (field === "theme") {
         updates = { theme: value };
