@@ -1,5 +1,4 @@
 import { db } from "../lib/firebaseAdmin";
-import fetch from "node-fetch";
 import { sendNotificationToUser } from "../lib/sendNotification";
 
 export async function calculateWeeklyResults() {

@@ -1,5 +1,4 @@
 import { db } from "@/lib/firebaseAdmin";
-import fetch from "node-fetch";
 
 export async function updateIsCorrectJob() {
   console.log("🔄 Starting updateIsCorrect job...");
