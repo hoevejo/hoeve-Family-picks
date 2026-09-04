@@ -12,7 +12,8 @@
     "format:check": "prettier --check .",
     "check": "pnpm run format:check && pnpm run lint && pnpm run build",
     "prepare": "husky",
-    "migrate": "node --env-file=.env.local scripts/migrate-schema.mjs"
+    "migrate": "node --env-file=.env.local scripts/migrate-schema.mjs",
+    "reset-season": "node --env-file=.env.local scripts/reset-fresh-season.mjs"
   },
   "dependencies": {
     "firebase": "^12.18.0",
