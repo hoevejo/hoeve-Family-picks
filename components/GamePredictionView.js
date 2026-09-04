@@ -48,7 +48,7 @@ export default function GamePredictionView({
       {games.map((game) => (
         <details
           key={game.gameId}
-          className="bg-[var(--card-color)] border border-[var(--border-color)] rounded-lg p-4 shadow"
+          className="bg-[var(--card-color)] border border-[var(--border-color)] rounded-lg p-4 shadow-sm"
         >
           <summary className="cursor-pointer font-semibold flex justify-between items-center">
             <div className="flex items-center gap-4">

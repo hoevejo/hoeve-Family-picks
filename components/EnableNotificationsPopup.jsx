@@ -34,14 +34,14 @@ export default function EnableNotificationsPopup({ onConfirm, onDismiss }) {
           <button
             onClick={onDismiss}
             disabled={loading}
-            className="px-4 py-2 rounded bg-gray-300 text-sm text-black hover:bg-gray-400"
+            className="px-4 py-2 rounded-sm bg-gray-300 text-sm text-black hover:bg-gray-400"
           >
             Maybe Later
           </button>
           <button
             onClick={handleConfirm}
             disabled={loading}
-            className="px-4 py-2 rounded bg-[var(--accent-color)] text-white text-sm hover:bg-[var(--accent-hover)]"
+            className="px-4 py-2 rounded-sm bg-[var(--accent-color)] text-white text-sm hover:bg-[var(--accent-hover)]"
           >
             {loading ? "Enabling..." : "Enable"}
           </button>

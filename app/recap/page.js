@@ -160,7 +160,7 @@ export default function WeeklyRecapPage() {
         <RecapSection title="📈 Biggest Risers" users={recap.biggestRisers} />
         <RecapSection title="📉 Biggest Fallers" users={recap.biggestFallers} />
 
-        <div className="bg-[var(--card-color)] border border-[var(--border-color)] rounded-xl p-4 shadow">
+        <div className="bg-[var(--card-color)] border border-[var(--border-color)] rounded-xl p-4 shadow-sm">
           <h2 className="text-xl font-bold mb-3 text-[var(--text-color)]">
             📊 All Scores
           </h2>

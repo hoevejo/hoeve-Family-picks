@@ -264,7 +264,7 @@ export default function AdminDashboard() {
               name="week"
               value={config.week}
               onChange={handleChange}
-              className="w-full p-2 rounded border bg-[var(--input-bg)] text-[var(--input-text)]"
+              className="w-full p-2 rounded-sm border bg-[var(--input-bg)] text-[var(--input-text)]"
               required
             />
           </div>
@@ -276,7 +276,7 @@ export default function AdminDashboard() {
               name="seasonYear"
               value={config.seasonYear}
               onChange={handleChange}
-              className="w-full p-2 rounded border bg-[var(--input-bg)] text-[var(--input-text)]"
+              className="w-full p-2 rounded-sm border bg-[var(--input-bg)] text-[var(--input-text)]"
               required
             />
           </div>
@@ -287,7 +287,7 @@ export default function AdminDashboard() {
               name="seasonType"
               value={config.seasonType}
               onChange={handleChange}
-              className="w-full p-2 rounded border bg-[var(--input-bg)] text-[var(--input-text)]"
+              className="w-full p-2 rounded-sm border bg-[var(--input-bg)] text-[var(--input-text)]"
               required
             >
               <option value="Regular">Regular</option>
@@ -302,7 +302,7 @@ export default function AdminDashboard() {
               name="deadline"
               value={config.deadline}
               onChange={handleChange}
-              className="w-full p-2 rounded border bg-[var(--input-bg)] text-[var(--input-text)]"
+              className="w-full p-2 rounded-sm border bg-[var(--input-bg)] text-[var(--input-text)]"
               required
             />
           </div>
@@ -314,7 +314,7 @@ export default function AdminDashboard() {
               name="recapWeek"
               value={config.recapWeek}
               onChange={handleChange}
-              className="w-full p-2 rounded border bg-[var(--input-bg)] text-[var(--input-text)]"
+              className="w-full p-2 rounded-sm border bg-[var(--input-bg)] text-[var(--input-text)]"
               required
             />
           </div>
@@ -327,7 +327,7 @@ export default function AdminDashboard() {
             name="gameOfTheWeekId"
             value={config.gameOfTheWeekId || ""}
             onChange={handleChange}
-            className="w-full p-2 rounded border bg-[var(--input-bg)] text-[var(--input-text)]"
+            className="w-full p-2 rounded-sm border bg-[var(--input-bg)] text-[var(--input-text)]"
           >
             <option value="">— None —</option>
             {gamesForWeek.map((g) => (
@@ -365,7 +365,7 @@ export default function AdminDashboard() {
                 value={config.wagerMaxPoints}
                 onChange={handleChange}
                 min={0}
-                className="w-full p-2 rounded border bg-[var(--input-bg)] text-[var(--input-text)]"
+                className="w-full p-2 rounded-sm border bg-[var(--input-bg)] text-[var(--input-text)]"
               />
             </div>
 
@@ -375,7 +375,7 @@ export default function AdminDashboard() {
                 name="wagerMode"
                 value={config.wagerMode}
                 onChange={handleChange}
-                className="w-full p-2 rounded border bg-[var(--input-bg)] text-[var(--input-text)]"
+                className="w-full p-2 rounded-sm border bg-[var(--input-bg)] text-[var(--input-text)]"
               >
                 <option value="win_lose">Right: +N, Wrong: −N</option>
                 <option value="win_zero">Right: +N, Wrong: 0</option>
@@ -388,7 +388,7 @@ export default function AdminDashboard() {
                 name="tieBehavior"
                 value={config.tieBehavior}
                 onChange={handleChange}
-                className="w-full p-2 rounded border bg-[var(--input-bg)] text-[var(--input-text)]"
+                className="w-full p-2 rounded-sm border bg-[var(--input-bg)] text-[var(--input-text)]"
               >
                 <option value="push">Push (0)</option>
                 <option value="wrong">Count as Wrong</option>
@@ -401,7 +401,7 @@ export default function AdminDashboard() {
         <button
           type="submit"
           disabled={saving}
-          className="w-full px-4 py-2 bg-[var(--accent-color)] text-white rounded hover:bg-[var(--accent-hover)]"
+          className="w-full px-4 py-2 bg-[var(--accent-color)] text-white rounded-sm hover:bg-[var(--accent-hover)]"
         >
           {saving ? "Saving..." : "Save Changes"}
         </button>
@@ -409,21 +409,21 @@ export default function AdminDashboard() {
 
       <button
         onClick={handleTestNotification}
-        className="mt-4 px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600"
+        className="mt-4 px-4 py-2 bg-blue-500 text-white rounded-sm hover:bg-blue-600"
       >
         Send Test Notification
       </button>
 
       <button
         onClick={handleResetSeason}
-        className="mt-4 px-4 py-2 bg-yellow-500 text-white rounded hover:bg-yellow-600"
+        className="mt-4 px-4 py-2 bg-yellow-500 text-white rounded-sm hover:bg-yellow-600"
       >
         🧹 Clear & Archive Season
       </button>
 
       <button
         onClick={handleLogout}
-        className="mt-6 px-4 py-2 bg-red-500 text-white rounded hover:bg-red-600"
+        className="mt-6 px-4 py-2 bg-red-500 text-white rounded-sm hover:bg-red-600"
       >
         Logout
       </button>

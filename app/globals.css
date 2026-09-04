@@ -1,7 +1,20 @@
-/* Tailwind base + themeable CSS variables */
-@tailwind base;
-@tailwind components;
-@tailwind utilities;
+/* Tailwind v4 + themeable CSS variables */
+@import "tailwindcss";
+
+/*
+ * Tailwind v4 defaults `border-*` / `divide-*` to `currentColor` (v3 used
+ * gray-200). Several elements here use a bare `border` utility and rely on the
+ * old light-grey default, so restore it globally.
+ */
+@layer base {
+  *,
+  ::after,
+  ::before,
+  ::backdrop,
+  ::file-selector-button {
+    border-color: var(--color-gray-200, currentColor);
+  }
+}
 
 /* Theme System */
 

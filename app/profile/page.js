@@ -151,7 +151,7 @@ export default function ProfilePage() {
         <div className="space-y-4">
           <div>
             <label className="block font-medium">Email</label>
-            <p className="bg-[var(--input-bg)] text-[var(--input-text)] rounded px-3 py-2">
+            <p className="bg-[var(--input-bg)] text-[var(--input-text)] rounded-sm px-3 py-2">
               {user.email}
             </p>
           </div>
@@ -190,7 +190,7 @@ export default function ProfilePage() {
                 </button>
               </div>
             ) : (
-              <p className="bg-[var(--input-bg)] text-[var(--input-text)] rounded px-3 py-2">
+              <p className="bg-[var(--input-bg)] text-[var(--input-text)] rounded-sm px-3 py-2">
                 {form.firstName} {form.lastName}
               </p>
             )}
@@ -261,7 +261,7 @@ export default function ProfilePage() {
                       selectedAvatar &&
                       handleSave("profilePicture", selectedAvatar)
                     }
-                    className="px-4 py-2 bg-[var(--accent-color)] text-white rounded"
+                    className="px-4 py-2 bg-[var(--accent-color)] text-white rounded-sm"
                   >
                     Save
                   </button>
@@ -285,7 +285,7 @@ export default function ProfilePage() {
                     <button
                       key={category}
                       onClick={() => setAvatarCategory(category)}
-                      className="px-4 py-2 border rounded bg-[var(--accent-color)] text-white"
+                      className="px-4 py-2 border rounded-sm bg-[var(--accent-color)] text-white"
                     >
                       {category}
                     </button>

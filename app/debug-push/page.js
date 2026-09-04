@@ -68,26 +68,26 @@ export default function DebugPushPage() {
       <p>
         <strong>Subscription:</strong>
       </p>
-      <pre className="bg-gray-100 text-sm p-2 rounded mb-4 max-w-full overflow-auto text-black">
+      <pre className="bg-gray-100 text-sm p-2 rounded-sm mb-4 max-w-full overflow-auto text-black">
         {subscription ? JSON.stringify(subscription, null, 2) : "None"}
       </pre>
 
       <div className="flex gap-4 mb-4">
         <button
           onClick={testLocalNotification}
-          className="px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600"
+          className="px-4 py-2 bg-blue-500 text-white rounded-sm hover:bg-blue-600"
         >
           Trigger Local Notification
         </button>
         <button
           onClick={resubscribe}
-          className="px-4 py-2 bg-green-500 text-white rounded hover:bg-green-600"
+          className="px-4 py-2 bg-green-500 text-white rounded-sm hover:bg-green-600"
         >
           Re-subscribe to Push
         </button>
       </div>
 
-      <div className="mt-4 bg-gray-200 p-3 rounded text-black">
+      <div className="mt-4 bg-gray-200 p-3 rounded-sm text-black">
         <p className="font-semibold mb-2">Debug Log:</p>
         <ul className="list-disc pl-5 space-y-1 text-sm">
           {log.map((line, i) => (
