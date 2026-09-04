@@ -1,6 +1,12 @@
 import { db } from "@/lib/firebaseAdmin";
 import { Timestamp } from "firebase-admin/firestore";
 import { sendNotificationToUser } from "../lib/sendNotification";
+import {
+  normalizeSeasonType,
+  weekKey,
+  gameDocId,
+  espnScoreboardUrl,
+} from "../lib/seasonType";
 
 /**
  * Fetch and store games for a target week.
@@ -9,7 +15,7 @@ import { sendNotificationToUser } from "../lib/sendNotification";
  * @param {Object} opts
  *   - week?: number
  *   - seasonYear?: number
- *   - seasonType?: "Regular" | "Postseason"
+ *   - seasonType?: "regular" | "postseason" (any casing accepted, normalized)
  *   - useNextWeek?: boolean
  */
 export async function fetchAndStoreGames(opts = {}) {
@@ -21,7 +27,7 @@ export async function fetchAndStoreGames(opts = {}) {
   const cfgSeasonYear = Number(
     opts.seasonYear ?? cfg.seasonYear ?? new Date().getFullYear(),
   );
-  const cfgSeasonType = String(opts.seasonType ?? cfg.seasonType ?? "Regular"); // "Regular" | "Postseason"
+  const cfgSeasonType = opts.seasonType ?? cfg.seasonType ?? "regular";
   const cfgWeek = Number(opts.week ?? cfg.week ?? 1);
 
   // Should we fetch next week?
@@ -38,13 +44,12 @@ export async function fetchAndStoreGames(opts = {}) {
 
   const targetWeek = useNextWeek ? cfgWeek + 1 : cfgWeek;
   const targetYear = cfgSeasonYear;
-  const seasonTypeNum = cfgSeasonType.toLowerCase() === "postseason" ? 3 : 2; // 2=Regular, 3=Postseason
-  const seasonTypeDisplay = seasonTypeNum === 3 ? "Postseason" : "Regular";
-  const seasonTypeSlug = seasonTypeDisplay.toLowerCase();
+  const seasonType = normalizeSeasonType(cfgSeasonType); // canonical slug, e.g. "regular"
 
   // ---- call ESPN for the explicit target WEEK/YEAR/TYPE
-  const url = `https://site.api.espn.com/apis/site/v2/sports/football/nfl/scoreboard?year=${targetYear}&seasontype=${seasonTypeNum}&week=${targetWeek}`;
-  const res = await fetch(url);
+  const res = await fetch(
+    espnScoreboardUrl({ seasonYear: targetYear, seasonType, week: targetWeek }),
+  );
   const data = await res.json();
 
   const games = data?.events || [];
@@ -100,7 +105,12 @@ export async function fetchAndStoreGames(opts = {}) {
     }
     const winnerId = winnerTeam?.team?.id ? String(winnerTeam.team.id) : null;
 
-    const docId = `${targetYear}-${seasonTypeSlug}-week${targetWeek}-${gameId}`;
+    const docId = gameDocId({
+      seasonYear: targetYear,
+      seasonType,
+      week: targetWeek,
+      gameId,
+    });
     const ref = db.doc(`games/${docId}`);
 
     batch.set(
@@ -111,7 +121,7 @@ export async function fetchAndStoreGames(opts = {}) {
         shortName: ev.shortName,
         date: ev.date, // ISO
         status: statusName,
-        seasonType: seasonTypeDisplay, // "Regular" or "Postseason"
+        seasonType, // canonical slug: "regular" | "postseason"
         seasonYear: targetYear,
         week: targetWeek,
         homeTeam: {
@@ -157,7 +167,7 @@ export async function fetchAndStoreGames(opts = {}) {
     const idx = Math.floor(Math.random() * games.length);
     gameOfTheWeekId = String(games[idx].id);
     console.log(
-      `🎲 GOTW for ${targetYear}-${seasonTypeSlug}-week${targetWeek}: ${gameOfTheWeekId}`,
+      `🎲 GOTW for ${weekKey({ seasonYear: targetYear, seasonType, week: targetWeek })}: ${gameOfTheWeekId}`,
     );
   }
 
@@ -165,8 +175,7 @@ export async function fetchAndStoreGames(opts = {}) {
     {
       week: targetWeek,
       seasonYear: targetYear,
-      seasonType: seasonTypeDisplay,
-      seasonTypeSlug,
+      seasonType,
       deadline: Timestamp.fromDate(new Date(earliestGame.date)),
       endOfSeason: leagueEndDate
         ? Timestamp.fromDate(leagueEndDate)

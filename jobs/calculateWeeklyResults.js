@@ -1,5 +1,11 @@
 import { db } from "../lib/firebaseAdmin";
 import { sendNotificationToUser } from "../lib/sendNotification";
+import {
+  normalizeSeasonType,
+  weekKey,
+  espnScoreboardUrl,
+  leaderboardScope,
+} from "../lib/seasonType";
 
 export async function calculateWeeklyResults() {
   console.log("📊 Starting weekly results calculation...");
@@ -14,16 +20,8 @@ export async function calculateWeeklyResults() {
     ? String(cfg.gameOfTheWeekId)
     : null;
 
-  const seasonTypeSlug = String(seasonType || "").toLowerCase();
-  const seasonTypeVariants = Array.from(
-    new Set([
-      String(seasonType || ""),
-      seasonTypeSlug,
-      seasonTypeSlug.charAt(0).toUpperCase() + seasonTypeSlug.slice(1),
-    ]),
-  ).filter(Boolean);
-
-  const recapDocId = `${seasonYear}-${seasonTypeSlug}-week${week}`;
+  const seasonTypeSlug = normalizeSeasonType(seasonType);
+  const recapDocId = weekKey({ seasonYear, seasonType: seasonTypeSlug, week });
 
   // --- 1) Build winners + final ties from GAMES (authoritative)
   const winners = new Map(); // gameId -> winnerTeamId
@@ -34,7 +32,7 @@ export async function calculateWeeklyResults() {
     .collection("games")
     .where("seasonYear", "==", seasonYear)
     .where("week", "==", week)
-    .where("seasonType", "in", seasonTypeVariants)
+    .where("seasonType", "==", seasonTypeSlug)
     .get();
 
   const gameIdsForWeek = [];
@@ -61,8 +59,11 @@ export async function calculateWeeklyResults() {
     (k) => !winners.has(k) && !finalTies.has(k),
   );
   if (missing.length > 0) {
+    // Explicit year/seasontype/week -- the bare scoreboard endpoint returns
+    // whatever week ESPN itself considers "current" today, which can
+    // silently disagree with the week actually being graded.
     const res = await fetch(
-      "https://site.api.espn.com/apis/site/v2/sports/football/nfl/scoreboard",
+      espnScoreboardUrl({ seasonYear, seasonType, week }),
     );
     const sb = await res.json();
     const events = sb?.events || [];
@@ -119,7 +120,7 @@ export async function calculateWeeklyResults() {
   const picksSnap = await db
     .collection("picks")
     .where("seasonYear", "==", seasonYear)
-    .where("seasonType", "in", seasonTypeVariants)
+    .where("seasonType", "==", seasonTypeSlug)
     .where("week", "==", week)
     .get();
 
@@ -127,10 +128,17 @@ export async function calculateWeeklyResults() {
   const userWeeklyDetails = []; // [{ uid, fullName, score }]
   const weeklyPicks = []; // compact for history
 
+  // .update(), not .set(...,{merge:true}) -- `data` here has dotted-string
+  // keys like `predictions.${gameId}.isCorrect`. Firestore only parses those
+  // as nested field paths for .update(); .set()'s merge only follows real
+  // object nesting, so a dotted string key there was landing as a literal
+  // top-level field named e.g. "predictions.123.isCorrect", never actually
+  // nesting under the real `predictions` map. .update() is safe here since
+  // every `ref` comes from an already-fetched picksSnap doc.
   const commitBatch = async (writes) => {
     if (!writes.length) return;
     const b = db.batch();
-    writes.forEach(({ ref, data }) => b.set(ref, data, { merge: true }));
+    writes.forEach(({ ref, data }) => b.update(ref, data));
     await b.commit();
   };
 
@@ -224,10 +232,10 @@ export async function calculateWeeklyResults() {
   if (pending.length) await commitBatch(pending);
 
   // --- 4) Update weekly leaderboard (ACCUMULATE across weeks, idempotent per week)
-  const leaderboardType =
-    seasonTypeSlug === "postseason" ? "leaderboardPostseason" : "leaderboard";
+  const scope = leaderboardScope(seasonTypeSlug); // "regular" | "postseason"
+  const lbCollectionPath = `leaderboards/${scope}/entries`;
 
-  const lbSnap = await db.collection(leaderboardType).get();
+  const lbSnap = await db.collection(lbCollectionPath).get();
   const lbByUid = new Map();
   lbSnap.docs.forEach((d) => lbByUid.set(d.id, d.data() || {}));
 
@@ -250,12 +258,17 @@ export async function calculateWeeklyResults() {
       ? prevTotal - prevLast + thisWeekPoints
       : prevTotal + thisWeekPoints;
 
+    // Deliberately not spreading ...prev here -- older docs may still carry
+    // dead fullName/profilePicture fields from before the leaderboard
+    // consolidation; the UI joins against publicProfiles for display info.
     const record = {
-      ...prev,
       uid,
       lastWeekPoints: thisWeekPoints,
       totalPoints,
       lastGradedKey: recapDocId,
+      currentRank: prev.currentRank ?? 0,
+      previousRank: prev.previousRank ?? 0,
+      positionChange: prev.positionChange ?? 0,
     };
     updated.push(record);
   }
@@ -270,7 +283,7 @@ export async function calculateWeeklyResults() {
     const prevRank = cur.currentRank ?? newRank;
     const positionChange = prevRank - newRank;
 
-    await db.doc(`${leaderboardType}/${cur.uid}`).set(
+    await db.doc(`${lbCollectionPath}/${cur.uid}`).set(
       {
         ...cur,
         previousRank: prevRank,
@@ -286,7 +299,7 @@ export async function calculateWeeklyResults() {
   }
 
   // --- 5) Update all-time leaderboard (same accumulation + idempotent)
-  const allTimeSnap = await db.collection("leaderboardAllTime").get();
+  const allTimeSnap = await db.collection("leaderboards/allTime/entries").get();
   const atByUid = new Map();
   allTimeSnap.docs.forEach((d) => atByUid.set(d.id, d.data() || {}));
 
@@ -302,7 +315,7 @@ export async function calculateWeeklyResults() {
 
     const totalPoints = sameWeek ? prevTotal - prevLast + add : prevTotal + add;
 
-    await db.doc(`leaderboardAllTime/${uid}`).set(
+    await db.doc(`leaderboards/allTime/entries/${uid}`).set(
       {
         uid,
         totalPoints,
@@ -339,19 +352,20 @@ export async function calculateWeeklyResults() {
     (u) => (u.positionChange ?? 0) === maxDrop,
   );
 
-  await db.doc(`weeklyRecap/${recapDocId}`).set({
-    week,
-    seasonType: seasonTypeSlug,
-    seasonYear,
-    highestScore,
-    lowestScore,
-    topScorers,
-    lowestScorers,
-    biggestRisers,
-    biggestFallers,
-    scores: userWeeklyDetails,
-    createdAt: new Date(),
-  });
+  // weeklyRecap is retired -- it duplicated exactly this data under the same
+  // ID scheme as history, just flattened at the top level instead of nested
+  // under `recap`. app/recap/page.js now reads history/{weekKey}.recap.
+
+  // Compact per-game summary for the /history page's "Weekly Matchups"
+  // section (components/GamePredictionView.js) -- built from gameById,
+  // already in memory from step 1, no extra reads needed.
+  const historyGames = Array.from(gameById.values()).map((gd) => ({
+    id: gd.id,
+    name: gd.name,
+    homeTeam: gd.homeTeam,
+    awayTeam: gd.awayTeam,
+    winnerId: gd.winnerId ?? null,
+  }));
 
   await db.doc(`history/${recapDocId}`).set({
     week,
@@ -368,6 +382,7 @@ export async function calculateWeeklyResults() {
       scores: userWeeklyDetails,
     },
     picks: weeklyPicks,
+    games: historyGames,
     createdAt: new Date(),
   });
 

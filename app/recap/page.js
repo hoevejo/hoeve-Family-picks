@@ -6,6 +6,7 @@ import { getDoc, doc, getDocs, collection } from "firebase/firestore";
 import Image from "next/image";
 import { Toaster, toast } from "react-hot-toast";
 import RecapSection from "../../components/RecapSection";
+import { weekKey, seasonTypeLabel } from "../../lib/seasonType";
 
 export default function WeeklyRecapPage() {
   const [recap, setRecap] = useState(null);
@@ -30,36 +31,42 @@ export default function WeeklyRecapPage() {
           return;
         }
 
-        // Normalize to slug for recap doc id, prefer seasonTypeSlug from config if present
+        // weeklyRecap is retired -- history/{weekKey}.recap has the same
+        // data (history is a strict superset: it also carries leaderboard
+        // and picks). Legacy-cased ID fallback stays for now (removed once
+        // the migration script has run and no legacy-cased history docs
+        // remain -- see the schema-cleanup plan).
         const rawType = (cfg.seasonTypeSlug || cfg.seasonType || "").toString();
-        const typeSlug = rawType.toLowerCase().includes("post")
-          ? "postseason"
-          : "regular";
-
-        // Primary (correct) ID
-        const recapId = `${seasonYear}-${typeSlug}-week${rw}`;
-        let recapDoc = await getDoc(doc(db, "weeklyRecap", recapId));
+        const recapId = weekKey({ seasonYear, seasonType: rawType, week: rw });
+        let historyDoc = await getDoc(doc(db, "history", recapId));
 
         // Fallbacks in case old jobs wrote different casing
-        if (!recapDoc.exists()) {
+        if (!historyDoc.exists()) {
           const legacyIdExact = `${seasonYear}-${rawType}-week${rw}`;
           const legacyIdLower = `${seasonYear}-${rawType.toLowerCase()}-week${rw}`;
-          recapDoc = await getDoc(doc(db, "weeklyRecap", legacyIdExact));
-          if (!recapDoc.exists()) {
-            recapDoc = await getDoc(doc(db, "weeklyRecap", legacyIdLower));
+          historyDoc = await getDoc(doc(db, "history", legacyIdExact));
+          if (!historyDoc.exists()) {
+            historyDoc = await getDoc(doc(db, "history", legacyIdLower));
           }
         }
 
-        if (!recapDoc.exists()) {
+        if (!historyDoc.exists()) {
           setLoading(false);
           toast.error("No recap data found for the configured week.");
           return;
         }
 
-        const recapData = recapDoc.data();
+        const historyData = historyDoc.data();
+        const recapData = {
+          week: historyData.week,
+          seasonType: historyData.seasonType,
+          ...historyData.recap,
+        };
 
-        // Build user map for names/avatars
-        const usersSnap = await getDocs(collection(db, "users"));
+        // Build user map for names/avatars -- publicProfiles, not users,
+        // which carries private fields that have no business being broadly
+        // scanned here.
+        const usersSnap = await getDocs(collection(db, "publicProfiles"));
         const userMap = {};
         usersSnap.forEach((u) => {
           const ud = u.data();
@@ -101,11 +108,6 @@ export default function WeeklyRecapPage() {
 
     fetchRecap();
   }, []);
-
-  const formatSeasonType = (type) => {
-    const t = (type || "").toString().toLowerCase();
-    return t.includes("post") ? "Postseason" : "Regular Season";
-  };
 
   const avgScore = useMemo(() => {
     if (!recap?.scores?.length) return 0;
@@ -151,7 +153,7 @@ export default function WeeklyRecapPage() {
     <div className="min-h-screen px-4 py-6 bg-[var(--bg-color)] text-[var(--text-color)] transition-colors">
       <Toaster position="top-center" />
       <h1 className="text-3xl font-bold text-center mb-6">
-        📝 Week {recap.week} Recap ({formatSeasonType(recap.seasonType)})
+        📝 Week {recap.week} Recap ({seasonTypeLabel(recap.seasonType)})
       </h1>
 
       <div className="max-w-3xl mx-auto space-y-6">

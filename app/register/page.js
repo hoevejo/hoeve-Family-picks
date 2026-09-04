@@ -78,29 +78,52 @@ export default function Register() {
         email: newUser.email,
         createdAt: serverTimestamp(),
         profilePicture: avatarUrl,
-        totalPoints: 0,
-        weeklyPoints: {},
         isAdmin: false,
         notificationsEnabled: false,
         theme: "theme-blue-light",
       });
 
-      const createLeaderboardDoc = (uid, fullName) => ({
-        uid,
+      // publicProfiles/{uid} carries only the display fields, world-readable
+      // to any signed-in user -- so pages that just need a name/avatar to
+      // render a leaderboard/recap/history entry don't have to pull every
+      // user's full users/{uid} doc (email, isAdmin, notificationsEnabled)
+      // to do it.
+      await setDoc(doc(db, "publicProfiles", newUser.uid), {
+        uid: newUser.uid,
+        firstName: form.firstName,
+        lastName: form.lastName,
         fullName,
+        displayName: fullName,
+        profilePicture: avatarUrl,
+      });
+
+      // leaderboards/{scope}/entries -- no fullName here (dead field on the
+      // old top-level collections; the UI joins against publicProfiles for
+      // display info). No "lifetime" entry at registration -- that
+      // collection is only ever written by the season-reset job.
+      const rankedEntry = {
+        uid: newUser.uid,
         totalPoints: 0,
         currentRank: 0,
         previousRank: 0,
         positionChange: 0,
-      });
+      };
+      const allTimeEntry = { uid: newUser.uid, totalPoints: 0 };
 
       try {
-        const leaderboardDoc = createLeaderboardDoc(newUser.uid, fullName);
-
         await Promise.all([
-          setDoc(doc(db, "leaderboard", newUser.uid), leaderboardDoc),
-          setDoc(doc(db, "leaderboardPostseason", newUser.uid), leaderboardDoc),
-          setDoc(doc(db, "leaderboardAllTime", newUser.uid), leaderboardDoc),
+          setDoc(
+            doc(db, "leaderboards/regular/entries", newUser.uid),
+            rankedEntry,
+          ),
+          setDoc(
+            doc(db, "leaderboards/postseason/entries", newUser.uid),
+            rankedEntry,
+          ),
+          setDoc(
+            doc(db, "leaderboards/allTime/entries", newUser.uid),
+            allTimeEntry,
+          ),
         ]);
       } catch (error) {
         console.error("Error creating leaderboard documents:", error);

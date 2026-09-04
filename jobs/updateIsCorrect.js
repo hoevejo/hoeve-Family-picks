@@ -1,4 +1,9 @@
 import { db } from "@/lib/firebaseAdmin";
+import {
+  normalizeSeasonType,
+  gameDocId,
+  espnScoreboardUrl,
+} from "@/lib/seasonType";
 
 export async function updateIsCorrectJob() {
   console.log("🔄 Starting updateIsCorrect job...");
@@ -10,20 +15,12 @@ export async function updateIsCorrectJob() {
 
   const { seasonYear, seasonType, week } = config;
 
-  const seasonTypeSlug = String(seasonType || "").toLowerCase();
-  const gameIdPrefix = `${seasonYear}-${seasonTypeSlug}-week${week}`;
+  const seasonTypeSlug = normalizeSeasonType(seasonType);
 
-  const seasonTypeVariants = Array.from(
-    new Set([
-      String(seasonType || ""),
-      seasonTypeSlug,
-      seasonTypeSlug.charAt(0).toUpperCase() + seasonTypeSlug.slice(1), // "Regular"
-    ]),
-  ).filter(Boolean);
-
-  const res = await fetch(
-    "https://site.api.espn.com/apis/site/v2/sports/football/nfl/scoreboard",
-  );
+  // Explicit year/seasontype/week -- the bare scoreboard endpoint returns
+  // whatever week ESPN itself considers "current" today, which can silently
+  // disagree with the week actually being graded.
+  const res = await fetch(espnScoreboardUrl({ seasonYear, seasonType, week }));
   const json = await res.json();
   const events = json.events || [];
 
@@ -67,7 +64,12 @@ export async function updateIsCorrectJob() {
     winners.set(gameId, winnerId);
 
     // Update the corresponding game doc if it exists for this configured week
-    const fullGameId = `${gameIdPrefix}-${gameId}`;
+    const fullGameId = gameDocId({
+      seasonYear,
+      seasonType: seasonTypeSlug,
+      week,
+      gameId,
+    });
     const gameRef = db.doc(`games/${fullGameId}`);
     const gameSnap = await gameRef.get();
     if (!gameSnap.exists) continue;
@@ -93,15 +95,13 @@ export async function updateIsCorrectJob() {
   const picksSnap = await db
     .collection("picks")
     .where("seasonYear", "==", seasonYear)
-    .where("seasonType", "in", seasonTypeVariants)
+    .where("seasonType", "==", seasonTypeSlug)
     .where("week", "==", week)
     .get();
 
   if (picksSnap.empty) {
     console.log(
-      `ℹ️ No picks matched for seasonYear=${seasonYear}, week=${week}, seasonType in ${JSON.stringify(
-        seasonTypeVariants,
-      )}`,
+      `ℹ️ No picks matched for seasonYear=${seasonYear}, week=${week}, seasonType=${seasonTypeSlug}`,
     );
     return { success: true, updatedGames, updatedPicks };
   }

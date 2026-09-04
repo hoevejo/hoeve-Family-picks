@@ -1,15 +1,36 @@
 // app/api/placeWager/route.js
 import { NextResponse } from "next/server";
 import { db } from "@/lib/firebaseAdmin";
+import {
+  normalizeSeasonType,
+  gameDocId,
+  picksDocId,
+  leaderboardScope,
+} from "@/lib/seasonType";
+import { verifyIdToken } from "@/lib/verifyRequest";
 
 export async function POST(req) {
   try {
-    const { userId, seasonYear, seasonType, week, teamId, points } =
-      await req.json();
+    // The caller's own verified identity, not a body-supplied userId --
+    // this route used to trust `userId` from the request body outright,
+    // letting anyone place/overwrite a wager on any known uid.
+    const userId = await verifyIdToken(req);
+    if (!userId) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
 
-    if (!userId || !seasonYear || !seasonType || !week || !teamId) {
+    const {
+      seasonYear,
+      seasonType: rawSeasonType,
+      week,
+      teamId,
+      points,
+    } = await req.json();
+
+    if (!seasonYear || !rawSeasonType || !week || !teamId) {
       return NextResponse.json({ error: "Missing fields" }, { status: 400 });
     }
+    const seasonType = normalizeSeasonType(rawSeasonType);
 
     const cfgSnap = await db.doc("config/config").get();
     const cfg = cfgSnap.data() || {};
@@ -22,10 +43,7 @@ export async function POST(req) {
     }
 
     // ✅ enforce “only up to user’s points”
-    const lbCollection =
-      String(seasonType).toLowerCase() === "postseason"
-        ? "leaderboardPostseason"
-        : "leaderboard";
+    const lbCollection = `leaderboards/${leaderboardScope(seasonType)}/entries`;
     const lbSnap = await db.doc(`${lbCollection}/${userId}`).get();
     const userTotal = Number((lbSnap.data() || {}).totalPoints || 0);
 
@@ -38,8 +56,12 @@ export async function POST(req) {
     }
 
     // validate GOTW game + not locked
-    const seasonTypeSlug = String(seasonType).toLowerCase();
-    const fullGameId = `${seasonYear}-${seasonTypeSlug}-week${week}-${gotwId}`;
+    const fullGameId = gameDocId({
+      seasonYear,
+      seasonType,
+      week,
+      gameId: gotwId,
+    });
     const gameSnap = await db.doc(`games/${fullGameId}`).get();
     if (!gameSnap.exists) {
       return NextResponse.json(
@@ -67,26 +89,37 @@ export async function POST(req) {
       );
     }
 
-    // upsert to picks doc (merge) + sync GOTW prediction
-    const picksId = `${seasonYear}-${seasonType}-week${week}-${userId}`;
+    // upsert to picks doc (merge) + sync GOTW prediction.
+    // Two writes, not one: .set(...,{merge:true}) only merges based on real
+    // object nesting -- a dotted-string key like `predictions.${gotwId}.teamId`
+    // in that call lands as a literal top-level field, not nested under
+    // `predictions`. Guarantee the doc exists first via .set(), then use
+    // .update() (which does parse dotted keys as nested field paths) for the
+    // prediction fields.
+    const picksId = picksDocId({ seasonYear, seasonType, week, uid: userId });
     const picksRef = db.doc(`picks/${picksId}`);
+    const profileSnap = await db.doc(`publicProfiles/${userId}`).get();
+    const fullName = profileSnap.data()?.fullName || "";
     await picksRef.set(
       {
         userId,
         seasonYear,
         seasonType,
         week,
+        fullName,
         wager: {
           gameId: gotwId,
           teamId: team,
           points: wagerPts,
           placedAt: new Date().toISOString(),
         },
-        [`predictions.${gotwId}.teamId`]: team,
-        [`predictions.${gotwId}.isCorrect`]: null,
       },
       { merge: true },
     );
+    await picksRef.update({
+      [`predictions.${gotwId}.teamId`]: team,
+      [`predictions.${gotwId}.isCorrect`]: null,
+    });
 
     return NextResponse.json({ success: true, maxAllowed: userTotal });
   } catch (e) {

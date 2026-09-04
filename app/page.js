@@ -14,6 +14,7 @@ import Image from "next/image";
 import { useAuth } from "../context/AuthContext";
 import EnableNotificationsPopup from "@/components/EnableNotificationsPopup";
 import { subscribeToPushNotifications } from "@/lib/pushUtils";
+import { leaderboardScope } from "@/lib/seasonType";
 
 export default function Leaderboard() {
   const { user } = useAuth();
@@ -31,10 +32,8 @@ export default function Leaderboard() {
       try {
         const snap = await getDoc(doc(db, "config", "config"));
         if (!snap.exists()) return;
-        const type = String((snap.data() || {}).seasonType || "").toLowerCase();
-        if (type.startsWith("post")) setActiveTab("Postseason");
-        else if (type.startsWith("reg")) setActiveTab("Regular Season");
-        else setActiveTab("All-Time");
+        const scope = leaderboardScope((snap.data() || {}).seasonType);
+        setActiveTab(scope === "postseason" ? "Postseason" : "Regular Season");
       } catch (e) {
         console.warn("Failed to load config:", e);
       }
@@ -43,9 +42,9 @@ export default function Leaderboard() {
   }, []);
 
   const collectionName = useMemo(() => {
-    if (activeTab === "Postseason") return "leaderboardPostseason";
-    if (activeTab === "All-Time") return "leaderboardAllTime";
-    return "leaderboard";
+    if (activeTab === "Postseason") return "leaderboards/postseason/entries";
+    if (activeTab === "All-Time") return "leaderboards/allTime/entries";
+    return "leaderboards/regular/entries";
   }, [activeTab]);
 
   // Realtime leaderboard; ignore cache-only first emission to avoid stale data
@@ -63,12 +62,16 @@ export default function Leaderboard() {
 
         const raw = snap.docs.map((d) => ({ id: d.id, ...d.data() }));
 
-        // Always fetch users fresh (server) so names/avatars update immediately
+        // Always fetch profiles fresh (server) so names/avatars update
+        // immediately. publicProfiles, not users -- this is a broad,
+        // unfiltered collection scan visible to any signed-in client, and
+        // users/{uid} carries private fields (email, isAdmin,
+        // notificationsEnabled) that have no business being fetched here.
         let usersSnap;
         try {
-          usersSnap = await getDocsFromServer(collection(db, "users"));
+          usersSnap = await getDocsFromServer(collection(db, "publicProfiles"));
         } catch {
-          usersSnap = await getDocs(collection(db, "users")); // fallback
+          usersSnap = await getDocs(collection(db, "publicProfiles")); // fallback
         }
 
         const userMap = {};

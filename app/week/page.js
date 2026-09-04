@@ -12,8 +12,15 @@ import {
   query,
   where,
 } from "firebase/firestore";
-import { db } from "../../lib/firebaseConfig";
+import { db, auth } from "../../lib/firebaseConfig";
 import { useAuth } from "../../context/AuthContext";
+import {
+  SEASON_TYPES,
+  normalizeSeasonType,
+  seasonTypeLabel,
+  picksDocId,
+  leaderboardScope,
+} from "../../lib/seasonType";
 
 export default function WeeklyPicks() {
   const { user } = useAuth();
@@ -23,7 +30,7 @@ export default function WeeklyPicks() {
   const [predictions, setPredictions] = useState({});
   const [week, setWeek] = useState(null);
   const [seasonYear, setSeasonYear] = useState(null);
-  const [seasonType, setSeasonType] = useState("Regular");
+  const [seasonType, setSeasonType] = useState(SEASON_TYPES.REGULAR);
   const [deadline, setDeadline] = useState(null);
   const [isDeadlinePassed, setIsDeadlinePassed] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
@@ -54,7 +61,7 @@ export default function WeeklyPicks() {
           const c = configDoc.data();
           setWeek(c.week);
           setSeasonYear(c.seasonYear);
-          setSeasonType(c.seasonType);
+          setSeasonType(normalizeSeasonType(c.seasonType));
           if (c.gameOfTheWeekId) setGameOfTheWeekId(String(c.gameOfTheWeekId));
 
           if (c.deadline?.seconds) {
@@ -123,7 +130,7 @@ export default function WeeklyPicks() {
         const ref = doc(
           db,
           "picks",
-          `${seasonYear}-${seasonType}-week${week}-${user.uid}`,
+          picksDocId({ seasonYear, seasonType, week, uid: user.uid }),
         );
         const snap = await getDoc(ref);
         if (snap.exists()) {
@@ -149,8 +156,7 @@ export default function WeeklyPicks() {
     if (!user?.uid || !seasonType) return;
     const fetchPoints = async () => {
       try {
-        const leaderboardCollection =
-          seasonType === "Postseason" ? "leaderboardPostseason" : "leaderboard";
+        const leaderboardCollection = `leaderboards/${leaderboardScope(seasonType)}/entries`;
         const pointsDoc = await getDoc(
           doc(db, leaderboardCollection, user.uid),
         );
@@ -196,7 +202,8 @@ export default function WeeklyPicks() {
         const picks = snapshot.docs.map((d) => d.data());
         setAllUserPicks(picks);
 
-        const usersSnapshot = await getDocs(collection(db, "users"));
+        // publicProfiles, not users -- only display fields are needed here.
+        const usersSnapshot = await getDocs(collection(db, "publicProfiles"));
         const map = {};
         usersSnapshot.forEach((u) => {
           const data = u.data();
@@ -253,21 +260,34 @@ export default function WeeklyPicks() {
       const ref = doc(
         db,
         "picks",
-        `${seasonYear}-${seasonType}-week${week}-${user.uid}`,
+        picksDocId({ seasonYear, seasonType, week, uid: user.uid }),
       );
       await setDoc(
         ref,
-        { userId: user.uid, seasonYear, seasonType, week, predictions },
+        {
+          userId: user.uid,
+          seasonYear,
+          seasonType,
+          week,
+          fullName: user.fullName || user.displayName || "",
+          predictions,
+        },
         { merge: true },
       );
 
       // Place/Update Wager via API (server validates against kickoff & points)
       if (gameOfTheWeekId && wagerPick?.teamId && (wagerPick.points ?? 0) > 0) {
+        // auth.currentUser, not the merged `user` from context -- object
+        // spread in AuthContext.js drops the Firebase Auth User's prototype
+        // methods (getIdToken included), so `user.getIdToken` doesn't exist.
+        const idToken = await auth.currentUser.getIdToken();
         const resp = await fetch("/api/placeWager", {
           method: "POST",
-          headers: { "Content-Type": "application/json" },
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${idToken}`,
+          },
           body: JSON.stringify({
-            userId: user.uid,
             seasonYear,
             seasonType,
             week,
@@ -294,12 +314,12 @@ export default function WeeklyPicks() {
         <p className="text-center">Loading...</p>
       ) : !games.length ? (
         <p className="text-center text-red-500">
-          No games available for {seasonType} - Week {week}.
+          No games available for {seasonTypeLabel(seasonType)} - Week {week}.
         </p>
       ) : !isDeadlinePassed ? (
         <>
           <h1 className="text-2xl font-bold">
-            Make Your Predictions ({seasonType} - Week {week})
+            Make Your Predictions ({seasonTypeLabel(seasonType)} - Week {week})
           </h1>
           <h2>
             Deadline:{" "}
