@@ -1,5 +1,6 @@
 import { db } from "../lib/firebaseAdmin";
 import { sendNotificationToUser } from "../lib/sendNotification";
+import { espnScoreboardUrl } from "../lib/seasonType";
 
 export async function calculateWeeklyResults() {
   console.log("📊 Starting weekly results calculation...");
@@ -61,8 +62,11 @@ export async function calculateWeeklyResults() {
     (k) => !winners.has(k) && !finalTies.has(k),
   );
   if (missing.length > 0) {
+    // Explicit year/seasontype/week -- the bare scoreboard endpoint returns
+    // whatever week ESPN itself considers "current" today, which can
+    // silently disagree with the week actually being graded.
     const res = await fetch(
-      "https://site.api.espn.com/apis/site/v2/sports/football/nfl/scoreboard",
+      espnScoreboardUrl({ seasonYear, seasonType, week }),
     );
     const sb = await res.json();
     const events = sb?.events || [];

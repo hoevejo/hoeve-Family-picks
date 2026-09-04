@@ -1,4 +1,5 @@
 import { db } from "@/lib/firebaseAdmin";
+import { espnScoreboardUrl } from "@/lib/seasonType";
 
 export async function updateIsCorrectJob() {
   console.log("🔄 Starting updateIsCorrect job...");
@@ -21,9 +22,10 @@ export async function updateIsCorrectJob() {
     ]),
   ).filter(Boolean);
 
-  const res = await fetch(
-    "https://site.api.espn.com/apis/site/v2/sports/football/nfl/scoreboard",
-  );
+  // Explicit year/seasontype/week -- the bare scoreboard endpoint returns
+  // whatever week ESPN itself considers "current" today, which can silently
+  // disagree with the week actually being graded.
+  const res = await fetch(espnScoreboardUrl({ seasonYear, seasonType, week }));
   const json = await res.json();
   const events = json.events || [];
 
