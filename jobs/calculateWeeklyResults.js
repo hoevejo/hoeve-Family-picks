@@ -4,6 +4,7 @@ import {
   normalizeSeasonType,
   weekKey,
   espnScoreboardUrl,
+  leaderboardScope,
 } from "../lib/seasonType";
 
 export async function calculateWeeklyResults() {
@@ -242,10 +243,10 @@ export async function calculateWeeklyResults() {
   if (pending.length) await commitBatch(pending);
 
   // --- 4) Update weekly leaderboard (ACCUMULATE across weeks, idempotent per week)
-  const leaderboardType =
-    seasonTypeSlug === "postseason" ? "leaderboardPostseason" : "leaderboard";
+  const scope = leaderboardScope(seasonTypeSlug); // "regular" | "postseason"
+  const lbCollectionPath = `leaderboards/${scope}/entries`;
 
-  const lbSnap = await db.collection(leaderboardType).get();
+  const lbSnap = await db.collection(lbCollectionPath).get();
   const lbByUid = new Map();
   lbSnap.docs.forEach((d) => lbByUid.set(d.id, d.data() || {}));
 
@@ -268,12 +269,17 @@ export async function calculateWeeklyResults() {
       ? prevTotal - prevLast + thisWeekPoints
       : prevTotal + thisWeekPoints;
 
+    // Deliberately not spreading ...prev here -- older docs may still carry
+    // dead fullName/profilePicture fields from before the leaderboard
+    // consolidation; the UI joins against publicProfiles for display info.
     const record = {
-      ...prev,
       uid,
       lastWeekPoints: thisWeekPoints,
       totalPoints,
       lastGradedKey: recapDocId,
+      currentRank: prev.currentRank ?? 0,
+      previousRank: prev.previousRank ?? 0,
+      positionChange: prev.positionChange ?? 0,
     };
     updated.push(record);
   }
@@ -288,7 +294,7 @@ export async function calculateWeeklyResults() {
     const prevRank = cur.currentRank ?? newRank;
     const positionChange = prevRank - newRank;
 
-    await db.doc(`${leaderboardType}/${cur.uid}`).set(
+    await db.doc(`${lbCollectionPath}/${cur.uid}`).set(
       {
         ...cur,
         previousRank: prevRank,
@@ -304,7 +310,7 @@ export async function calculateWeeklyResults() {
   }
 
   // --- 5) Update all-time leaderboard (same accumulation + idempotent)
-  const allTimeSnap = await db.collection("leaderboardAllTime").get();
+  const allTimeSnap = await db.collection("leaderboards/allTime/entries").get();
   const atByUid = new Map();
   allTimeSnap.docs.forEach((d) => atByUid.set(d.id, d.data() || {}));
 
@@ -320,7 +326,7 @@ export async function calculateWeeklyResults() {
 
     const totalPoints = sameWeek ? prevTotal - prevLast + add : prevTotal + add;
 
-    await db.doc(`leaderboardAllTime/${uid}`).set(
+    await db.doc(`leaderboards/allTime/entries/${uid}`).set(
       {
         uid,
         totalPoints,

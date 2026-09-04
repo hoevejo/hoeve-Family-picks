@@ -35,12 +35,7 @@ export async function POST(req) {
     }
 
     // ✅ enforce “only up to user’s points”
-    // Still the old top-level collection names for now -- the
-    // leaderboards/{scope}/entries consolidation is a later commit.
-    const lbCollection =
-      leaderboardScope(seasonType) === "postseason"
-        ? "leaderboardPostseason"
-        : "leaderboard";
+    const lbCollection = `leaderboards/${leaderboardScope(seasonType)}/entries`;
     const lbSnap = await db.doc(`${lbCollection}/${userId}`).get();
     const userTotal = Number((lbSnap.data() || {}).totalPoints || 0);
 

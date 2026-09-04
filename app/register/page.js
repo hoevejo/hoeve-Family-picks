@@ -97,22 +97,33 @@ export default function Register() {
         profilePicture: avatarUrl,
       });
 
-      const createLeaderboardDoc = (uid, fullName) => ({
-        uid,
-        fullName,
+      // leaderboards/{scope}/entries -- no fullName here (dead field on the
+      // old top-level collections; the UI joins against publicProfiles for
+      // display info). No "lifetime" entry at registration -- that
+      // collection is only ever written by the season-reset job.
+      const rankedEntry = {
+        uid: newUser.uid,
         totalPoints: 0,
         currentRank: 0,
         previousRank: 0,
         positionChange: 0,
-      });
+      };
+      const allTimeEntry = { uid: newUser.uid, totalPoints: 0 };
 
       try {
-        const leaderboardDoc = createLeaderboardDoc(newUser.uid, fullName);
-
         await Promise.all([
-          setDoc(doc(db, "leaderboard", newUser.uid), leaderboardDoc),
-          setDoc(doc(db, "leaderboardPostseason", newUser.uid), leaderboardDoc),
-          setDoc(doc(db, "leaderboardAllTime", newUser.uid), leaderboardDoc),
+          setDoc(
+            doc(db, "leaderboards/regular/entries", newUser.uid),
+            rankedEntry,
+          ),
+          setDoc(
+            doc(db, "leaderboards/postseason/entries", newUser.uid),
+            rankedEntry,
+          ),
+          setDoc(
+            doc(db, "leaderboards/allTime/entries", newUser.uid),
+            allTimeEntry,
+          ),
         ]);
       } catch (error) {
         console.error("Error creating leaderboard documents:", error);

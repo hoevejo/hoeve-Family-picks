@@ -156,12 +156,7 @@ export default function WeeklyPicks() {
     if (!user?.uid || !seasonType) return;
     const fetchPoints = async () => {
       try {
-        // Still the old top-level collection names for now -- the
-        // leaderboards/{scope}/entries consolidation is a later commit.
-        const leaderboardCollection =
-          leaderboardScope(seasonType) === "postseason"
-            ? "leaderboardPostseason"
-            : "leaderboard";
+        const leaderboardCollection = `leaderboards/${leaderboardScope(seasonType)}/entries`;
         const pointsDoc = await getDoc(
           doc(db, leaderboardCollection, user.uid),
         );

@@ -83,11 +83,10 @@ export default function ProfilePage() {
           firstName,
           lastName,
         };
-        await updateDoc(doc(db, "leaderboard", user.uid), {
-          fullName,
-          firstName,
-          lastName,
-        });
+        // No leaderboards/*/entries write here anymore -- those docs no
+        // longer carry fullName/profilePicture at all (dead fields the
+        // leaderboard UI never actually read; it already joins against
+        // publicProfiles for display info).
         // setDoc(merge) rather than updateDoc -- doesn't assume the
         // publicProfiles/{uid} doc already exists.
         await setDoc(
@@ -106,9 +105,6 @@ export default function ProfilePage() {
             : value;
 
         updates = { profilePicture: finalUrl };
-        await updateDoc(doc(db, "leaderboard", user.uid), {
-          profilePicture: finalUrl,
-        });
         await setDoc(
           doc(db, "publicProfiles", user.uid),
           { profilePicture: finalUrl },

@@ -42,9 +42,9 @@ export default function Leaderboard() {
   }, []);
 
   const collectionName = useMemo(() => {
-    if (activeTab === "Postseason") return "leaderboardPostseason";
-    if (activeTab === "All-Time") return "leaderboardAllTime";
-    return "leaderboard";
+    if (activeTab === "Postseason") return "leaderboards/postseason/entries";
+    if (activeTab === "All-Time") return "leaderboards/allTime/entries";
+    return "leaderboards/regular/entries";
   }, [activeTab]);
 
   // Realtime leaderboard; ignore cache-only first emission to avoid stale data
