@@ -363,19 +363,9 @@ export async function calculateWeeklyResults() {
     (u) => (u.positionChange ?? 0) === maxDrop,
   );
 
-  await db.doc(`weeklyRecap/${recapDocId}`).set({
-    week,
-    seasonType: seasonTypeSlug,
-    seasonYear,
-    highestScore,
-    lowestScore,
-    topScorers,
-    lowestScorers,
-    biggestRisers,
-    biggestFallers,
-    scores: userWeeklyDetails,
-    createdAt: new Date(),
-  });
+  // weeklyRecap is retired -- it duplicated exactly this data under the same
+  // ID scheme as history, just flattened at the top level instead of nested
+  // under `recap`. app/recap/page.js now reads history/{weekKey}.recap.
 
   // Compact per-game summary for the /history page's "Weekly Matchups"
   // section (components/GamePredictionView.js) -- built from gameById,

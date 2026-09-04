@@ -7,14 +7,11 @@ import Image from "next/image";
 import GamePredictionView from "../../components/GamePredictionView";
 import { Toaster, toast } from "react-hot-toast";
 import RecapSection from "../../components/RecapSection";
-
-const toSlug = (t) => {
-  const s = (t || "").toString().toLowerCase();
-  return s.includes("post") ? "postseason" : "regular";
-};
-
-const toDisplay = (t) =>
-  toSlug(t) === "postseason" ? "Postseason" : "Regular Season";
+import {
+  normalizeSeasonType,
+  seasonTypeLabel,
+  weekKey,
+} from "../../lib/seasonType";
 
 export default function HistoryPage() {
   const [history, setHistory] = useState(null);
@@ -39,7 +36,9 @@ export default function HistoryPage() {
         setSelectedWeek(Number(recapWeek));
         // Normalize initial UI value to "Regular"/"Postseason"
         setSelectedSeasonType(
-          toSlug(seasonType) === "postseason" ? "Postseason" : "Regular",
+          normalizeSeasonType(seasonType) === "postseason"
+            ? "Postseason"
+            : "Regular",
         );
       } catch (e) {
         console.error(e);
@@ -56,11 +55,11 @@ export default function HistoryPage() {
         const hs = await getDocs(collection(db, "history"));
         const yearsSet = new Set();
         const weeksSet = new Set();
-        const desiredSlug = toSlug(selectedSeasonType);
+        const desiredSlug = normalizeSeasonType(selectedSeasonType);
 
         hs.forEach((d) => {
           const data = d.data() || {};
-          const docSlug = toSlug(data.seasonType);
+          const docSlug = normalizeSeasonType(data.seasonType);
           if (docSlug !== desiredSlug) return;
           yearsSet.add(Number(data.seasonYear));
           if (Number(data.seasonYear) === Number(selectedYear)) {
@@ -87,8 +86,11 @@ export default function HistoryPage() {
     (async () => {
       setLoading(true);
       try {
-        const slug = toSlug(selectedSeasonType);
-        const primaryId = `${selectedYear}-${slug}-week${selectedWeek}`;
+        const primaryId = weekKey({
+          seasonYear: selectedYear,
+          seasonType: selectedSeasonType,
+          week: selectedWeek,
+        });
 
         let snap = await getDoc(doc(db, "history", primaryId));
 
@@ -228,7 +230,7 @@ export default function HistoryPage() {
       ) : (
         <div className="max-w-4xl mx-auto space-y-6">
           <h2 className="text-xl font-bold text-center mb-6">
-            {toDisplay(selectedSeasonType)} – Week {selectedWeek} Recap (
+            {seasonTypeLabel(selectedSeasonType)} – Week {selectedWeek} Recap (
             {selectedYear})
           </h2>
 
@@ -292,7 +294,9 @@ export default function HistoryPage() {
               <GamePredictionView
                 games={history.games}
                 seasonYear={selectedYear}
-                seasonType={selectedSeasonType}
+                // picks docs store the canonical lowercase slug, not the
+                // "Regular"/"Postseason" UI-select value.
+                seasonType={normalizeSeasonType(selectedSeasonType)}
                 week={selectedWeek}
               />
             </div>
