@@ -67,7 +67,13 @@ export async function POST(req) {
       );
     }
 
-    // upsert to picks doc (merge) + sync GOTW prediction
+    // upsert to picks doc (merge) + sync GOTW prediction.
+    // Two writes, not one: .set(...,{merge:true}) only merges based on real
+    // object nesting -- a dotted-string key like `predictions.${gotwId}.teamId`
+    // in that call lands as a literal top-level field, not nested under
+    // `predictions`. Guarantee the doc exists first via .set(), then use
+    // .update() (which does parse dotted keys as nested field paths) for the
+    // prediction fields.
     const picksId = `${seasonYear}-${seasonType}-week${week}-${userId}`;
     const picksRef = db.doc(`picks/${picksId}`);
     await picksRef.set(
@@ -82,11 +88,13 @@ export async function POST(req) {
           points: wagerPts,
           placedAt: new Date().toISOString(),
         },
-        [`predictions.${gotwId}.teamId`]: team,
-        [`predictions.${gotwId}.isCorrect`]: null,
       },
       { merge: true },
     );
+    await picksRef.update({
+      [`predictions.${gotwId}.teamId`]: team,
+      [`predictions.${gotwId}.isCorrect`]: null,
+    });
 
     return NextResponse.json({ success: true, maxAllowed: userTotal });
   } catch (e) {

@@ -131,10 +131,17 @@ export async function calculateWeeklyResults() {
   const userWeeklyDetails = []; // [{ uid, fullName, score }]
   const weeklyPicks = []; // compact for history
 
+  // .update(), not .set(...,{merge:true}) -- `data` here has dotted-string
+  // keys like `predictions.${gameId}.isCorrect`. Firestore only parses those
+  // as nested field paths for .update(); .set()'s merge only follows real
+  // object nesting, so a dotted string key there was landing as a literal
+  // top-level field named e.g. "predictions.123.isCorrect", never actually
+  // nesting under the real `predictions` map. .update() is safe here since
+  // every `ref` comes from an already-fetched picksSnap doc.
   const commitBatch = async (writes) => {
     if (!writes.length) return;
     const b = db.batch();
-    writes.forEach(({ ref, data }) => b.set(ref, data, { merge: true }));
+    writes.forEach(({ ref, data }) => b.update(ref, data));
     await b.commit();
   };
 
