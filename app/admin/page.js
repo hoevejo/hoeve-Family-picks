@@ -186,7 +186,11 @@ export default function AdminDashboard() {
     if (!confirmed) return;
 
     try {
-      const res = await fetch("/api/jobs/clearForNewSeason", { method: "GET" });
+      const idToken = await auth.currentUser.getIdToken();
+      const res = await fetch("/api/jobs/clearForNewSeason", {
+        method: "GET",
+        headers: { Authorization: `Bearer ${idToken}` },
+      });
       if (!res.ok) {
         const data = await res.json();
         throw new Error(data.error || "Unknown error");

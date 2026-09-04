@@ -7,11 +7,19 @@ import {
   picksDocId,
   leaderboardScope,
 } from "@/lib/seasonType";
+import { verifyIdToken } from "@/lib/verifyRequest";
 
 export async function POST(req) {
   try {
+    // The caller's own verified identity, not a body-supplied userId --
+    // this route used to trust `userId` from the request body outright,
+    // letting anyone place/overwrite a wager on any known uid.
+    const userId = await verifyIdToken(req);
+    if (!userId) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
+
     const {
-      userId,
       seasonYear,
       seasonType: rawSeasonType,
       week,
@@ -19,7 +27,7 @@ export async function POST(req) {
       points,
     } = await req.json();
 
-    if (!userId || !seasonYear || !rawSeasonType || !week || !teamId) {
+    if (!seasonYear || !rawSeasonType || !week || !teamId) {
       return NextResponse.json({ error: "Missing fields" }, { status: 400 });
     }
     const seasonType = normalizeSeasonType(rawSeasonType);

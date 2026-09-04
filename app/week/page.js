@@ -12,7 +12,7 @@ import {
   query,
   where,
 } from "firebase/firestore";
-import { db } from "../../lib/firebaseConfig";
+import { db, auth } from "../../lib/firebaseConfig";
 import { useAuth } from "../../context/AuthContext";
 import {
   SEASON_TYPES,
@@ -277,11 +277,17 @@ export default function WeeklyPicks() {
 
       // Place/Update Wager via API (server validates against kickoff & points)
       if (gameOfTheWeekId && wagerPick?.teamId && (wagerPick.points ?? 0) > 0) {
+        // auth.currentUser, not the merged `user` from context -- object
+        // spread in AuthContext.js drops the Firebase Auth User's prototype
+        // methods (getIdToken included), so `user.getIdToken` doesn't exist.
+        const idToken = await auth.currentUser.getIdToken();
         const resp = await fetch("/api/placeWager", {
           method: "POST",
-          headers: { "Content-Type": "application/json" },
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${idToken}`,
+          },
           body: JSON.stringify({
-            userId: user.uid,
             seasonYear,
             seasonType,
             week,

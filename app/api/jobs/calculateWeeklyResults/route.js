@@ -2,9 +2,14 @@ export const runtime = "nodejs";
 
 import { calculateWeeklyResults } from "@/jobs/calculateWeeklyResults";
 import { updateIsCorrectJob } from "@/jobs/updateIsCorrect";
+import { verifyCronSecret } from "@/lib/verifyRequest";
 import { NextResponse } from "next/server";
 
-export async function GET() {
+export async function GET(req) {
+  if (!verifyCronSecret(req)) {
+    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  }
+
   try {
     // updateIsCorrect is the only job that writes winnerId/hasResult back
     // onto game docs (it fetches ESPN's live scoreboard directly) --
