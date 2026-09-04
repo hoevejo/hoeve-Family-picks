@@ -35,7 +35,7 @@ A feature-rich, family-focused NFL Pick'em app built with **Next.js**, **Firebas
 ```bash
 git clone https://github.com/your-username/nfl-pickem-app.git
 cd nfl-pickem-app
-npm install
+pnpm install
 NEXT_PUBLIC_FIREBASE_API_KEY=your_api_key
 NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN=your_project.firebaseapp.com
 NEXT_PUBLIC_FIREBASE_PROJECT_ID=your_project_id

@@ -1,6 +1,5 @@
 import { db } from "@/lib/firebaseAdmin";
 import { Timestamp } from "firebase-admin/firestore";
-import fetch from "node-fetch";
 import { sendNotificationToUser } from "../lib/sendNotification";
 
 /**
