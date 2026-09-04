@@ -247,7 +247,7 @@ export default function HistoryPage() {
             users={history.recap?.biggestFallers}
           />
 
-          <div className="bg-[var(--card-color)] border border-[var(--border-color)] rounded-xl p-4 shadow">
+          <div className="bg-[var(--card-color)] border border-[var(--border-color)] rounded-xl p-4 shadow-sm">
             <h2 className="text-xl font-bold mb-3 text-[var(--text-color)]">
               📊 All Scores
             </h2>
@@ -283,7 +283,7 @@ export default function HistoryPage() {
           </div>
 
           {history.games && history.games.length > 0 && (
-            <div className="bg-[var(--card-color)] border border-[var(--border-color)] rounded-xl p-4 shadow">
+            <div className="bg-[var(--card-color)] border border-[var(--border-color)] rounded-xl p-4 shadow-sm">
               <h2 className="text-xl font-bold mb-3 text-[var(--text-color)]">
                 🏈 Weekly Matchups
               </h2>

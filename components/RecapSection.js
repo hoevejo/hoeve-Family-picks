@@ -6,7 +6,7 @@ import Image from "next/image";
  */
 export default function RecapSection({ title, users = [] }) {
   return (
-    <div className="bg-[var(--card-color)] border border-[var(--border-color)] rounded-xl p-4 mb-4 shadow">
+    <div className="bg-[var(--card-color)] border border-[var(--border-color)] rounded-xl p-4 mb-4 shadow-sm">
       <h2 className="text-xl font-bold mb-3 text-[var(--text-color)]">
         {title}
       </h2>

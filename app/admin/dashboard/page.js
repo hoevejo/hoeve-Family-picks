@@ -203,7 +203,7 @@ export default function AdminDashboard() {
       <div className="mt-6">
         <button
           onClick={handleLogout}
-          className="mt-4 px-4 py-2 bg-red-500 text-white rounded"
+          className="mt-4 px-4 py-2 bg-red-500 text-white rounded-sm"
         >
           Logout
         </button>

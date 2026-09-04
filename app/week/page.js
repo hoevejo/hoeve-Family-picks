@@ -443,7 +443,7 @@ export default function WeeklyPicks() {
                     type="number"
                     min={0}
                     max={userPoints}
-                    className="w-32 p-2 border rounded text-center bg-[var(--card-color)] border-[var(--border-color)]"
+                    className="w-32 p-2 border rounded-sm text-center bg-[var(--card-color)] border-[var(--border-color)]"
                     value={wagerPick?.points ?? ""}
                     onChange={(e) => {
                       const n = Math.max(
@@ -467,7 +467,7 @@ export default function WeeklyPicks() {
               type="submit"
               disabled={isSubmitting}
               aria-busy={isSubmitting ? "true" : "false"}
-              className={`bg-blue-500 text-white px-6 py-2 rounded mt-4 block mx-auto transition-all
+              className={`bg-blue-500 text-white px-6 py-2 rounded-sm mt-4 block mx-auto transition-all
                 hover:bg-blue-600
                 disabled:opacity-60 disabled:cursor-not-allowed`}
             >
@@ -492,7 +492,7 @@ export default function WeeklyPicks() {
             {games.map((game) => (
               <details
                 key={game.id}
-                className="bg-[var(--card-color)] rounded shadow-md"
+                className="bg-[var(--card-color)] rounded-sm shadow-md"
               >
                 <summary className="px-4 py-3 font-semibold cursor-pointer flex items-center justify-between gap-2">
                   <div className="flex items-center gap-2">
