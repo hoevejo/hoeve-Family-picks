@@ -371,6 +371,17 @@ export async function calculateWeeklyResults() {
     createdAt: new Date(),
   });
 
+  // Compact per-game summary for the /history page's "Weekly Matchups"
+  // section (components/GamePredictionView.js) -- built from gameById,
+  // already in memory from step 1, no extra reads needed.
+  const historyGames = Array.from(gameById.values()).map((gd) => ({
+    id: gd.id,
+    name: gd.name,
+    homeTeam: gd.homeTeam,
+    awayTeam: gd.awayTeam,
+    winnerId: gd.winnerId ?? null,
+  }));
+
   await db.doc(`history/${recapDocId}`).set({
     week,
     seasonType: seasonTypeSlug,
@@ -386,6 +397,7 @@ export async function calculateWeeklyResults() {
       scores: userWeeklyDetails,
     },
     picks: weeklyPicks,
+    games: historyGames,
     createdAt: new Date(),
   });
 

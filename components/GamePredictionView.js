@@ -35,7 +35,9 @@ export default function GamePredictionView({
   }, [seasonYear, seasonType, week]);
 
   const getPickers = (gameId, teamId) => {
-    return picks.filter((p) => p.predictions?.[gameId] === teamId);
+    return picks.filter(
+      (p) => String(p.predictions?.[gameId]?.teamId) === String(teamId),
+    );
   };
 
   const isWinningTeam = (game, teamId) => {
@@ -47,7 +49,7 @@ export default function GamePredictionView({
     <div className="space-y-4">
       {games.map((game) => (
         <details
-          key={game.gameId}
+          key={game.id}
           className="bg-[var(--card-color)] border border-[var(--border-color)] rounded-lg p-4 shadow-sm"
         >
           <summary className="cursor-pointer font-semibold flex justify-between items-center">
@@ -90,7 +92,7 @@ export default function GamePredictionView({
                   <h4 className="font-bold text-center">{team.name}</h4>
                 </div>
                 <ul className="space-y-1 text-center">
-                  {getPickers(game.gameId, team.id).map((p) => (
+                  {getPickers(String(game.id), team.id).map((p) => (
                     <li key={p.id} className="text-[var(--text-color)]">
                       {p.fullName || p.displayName || "Unknown"}
                     </li>
