@@ -17,17 +17,6 @@ export async function updateIsCorrectJob() {
 
   const seasonTypeSlug = normalizeSeasonType(seasonType);
 
-  // TODO(step 12 of the schema-cleanup plan): once the migration script has
-  // run and no legacy-cased docs remain, drop this "in" tolerance for an
-  // exact "==" match on the canonical slug.
-  const seasonTypeVariants = Array.from(
-    new Set([
-      String(seasonType || ""),
-      seasonTypeSlug,
-      seasonTypeSlug.charAt(0).toUpperCase() + seasonTypeSlug.slice(1), // "Regular"
-    ]),
-  ).filter(Boolean);
-
   // Explicit year/seasontype/week -- the bare scoreboard endpoint returns
   // whatever week ESPN itself considers "current" today, which can silently
   // disagree with the week actually being graded.
@@ -106,15 +95,13 @@ export async function updateIsCorrectJob() {
   const picksSnap = await db
     .collection("picks")
     .where("seasonYear", "==", seasonYear)
-    .where("seasonType", "in", seasonTypeVariants)
+    .where("seasonType", "==", seasonTypeSlug)
     .where("week", "==", week)
     .get();
 
   if (picksSnap.empty) {
     console.log(
-      `ℹ️ No picks matched for seasonYear=${seasonYear}, week=${week}, seasonType in ${JSON.stringify(
-        seasonTypeVariants,
-      )}`,
+      `ℹ️ No picks matched for seasonYear=${seasonYear}, week=${week}, seasonType=${seasonTypeSlug}`,
     );
     return { success: true, updatedGames, updatedPicks };
   }

@@ -21,17 +21,6 @@ export async function calculateWeeklyResults() {
     : null;
 
   const seasonTypeSlug = normalizeSeasonType(seasonType);
-  // TODO(step 12 of the schema-cleanup plan): once the migration script has
-  // run and no legacy-cased docs remain, drop this "in" tolerance for an
-  // exact "==" match on the canonical slug.
-  const seasonTypeVariants = Array.from(
-    new Set([
-      String(seasonType || ""),
-      seasonTypeSlug,
-      seasonTypeSlug.charAt(0).toUpperCase() + seasonTypeSlug.slice(1),
-    ]),
-  ).filter(Boolean);
-
   const recapDocId = weekKey({ seasonYear, seasonType: seasonTypeSlug, week });
 
   // --- 1) Build winners + final ties from GAMES (authoritative)
@@ -43,7 +32,7 @@ export async function calculateWeeklyResults() {
     .collection("games")
     .where("seasonYear", "==", seasonYear)
     .where("week", "==", week)
-    .where("seasonType", "in", seasonTypeVariants)
+    .where("seasonType", "==", seasonTypeSlug)
     .get();
 
   const gameIdsForWeek = [];
@@ -131,7 +120,7 @@ export async function calculateWeeklyResults() {
   const picksSnap = await db
     .collection("picks")
     .where("seasonYear", "==", seasonYear)
-    .where("seasonType", "in", seasonTypeVariants)
+    .where("seasonType", "==", seasonTypeSlug)
     .where("week", "==", week)
     .get();
 
