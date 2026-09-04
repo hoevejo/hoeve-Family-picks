@@ -5,7 +5,7 @@ import { seasonTypeLabel, weekKey } from "@/lib/seasonType";
 // Hit every 15-30 min by an external scheduler -- only actually sends once
 // the deadline is within this window, and at most once per week (tracked
 // via config.lastReminderSentFor).
-const REMINDER_WINDOW_MS = 2 * 60 * 60 * 1000; // 2 hours
+const REMINDER_WINDOW_MS = 60 * 60 * 1000; // 1 hour
 
 export async function sendPredictionReminder() {
   const configSnap = await db.doc("config/config").get();
