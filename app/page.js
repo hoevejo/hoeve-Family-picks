@@ -14,6 +14,7 @@ import Image from "next/image";
 import { useAuth } from "../context/AuthContext";
 import EnableNotificationsPopup from "@/components/EnableNotificationsPopup";
 import { subscribeToPushNotifications } from "@/lib/pushUtils";
+import { leaderboardScope } from "@/lib/seasonType";
 
 export default function Leaderboard() {
   const { user } = useAuth();
@@ -31,10 +32,8 @@ export default function Leaderboard() {
       try {
         const snap = await getDoc(doc(db, "config", "config"));
         if (!snap.exists()) return;
-        const type = String((snap.data() || {}).seasonType || "").toLowerCase();
-        if (type.startsWith("post")) setActiveTab("Postseason");
-        else if (type.startsWith("reg")) setActiveTab("Regular Season");
-        else setActiveTab("All-Time");
+        const scope = leaderboardScope((snap.data() || {}).seasonType);
+        setActiveTab(scope === "postseason" ? "Postseason" : "Regular Season");
       } catch (e) {
         console.warn("Failed to load config:", e);
       }

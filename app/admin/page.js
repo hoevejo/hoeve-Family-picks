@@ -14,6 +14,11 @@ import {
   where,
 } from "firebase/firestore";
 import { useRouter } from "next/navigation";
+import {
+  SEASON_TYPES,
+  normalizeSeasonType,
+  seasonTypeLabel,
+} from "@/lib/seasonType";
 
 export default function AdminDashboard() {
   const { user, isAdmin, loading } = useAuth();
@@ -22,14 +27,10 @@ export default function AdminDashboard() {
   const [config, setConfig] = useState({
     week: "",
     seasonYear: new Date().getFullYear(),
-    seasonType: "Regular", // normalized
+    seasonType: SEASON_TYPES.REGULAR,
     deadline: "",
     recapWeek: "",
     gameOfTheWeekId: "",
-    wagerEnabled: true,
-    wagerMaxPoints: 5,
-    wagerMode: "win_lose", // "win_lose" | "win_zero"
-    tieBehavior: "push", // "push" | "wrong" | "zero"
   });
 
   const [gamesForWeek, setGamesForWeek] = useState([]);
@@ -49,17 +50,11 @@ export default function AdminDashboard() {
         if (configSnap.exists()) {
           const data = configSnap.data();
 
-          // normalize seasonType text if older docs used "Regular Season"
-          const normalizedType =
-            data.seasonType === "Regular Season"
-              ? "Regular"
-              : data.seasonType || "Regular";
-
           setConfig((prev) => ({
             ...prev,
             week: data.week || "",
             seasonYear: data.seasonYear || new Date().getFullYear(),
-            seasonType: normalizedType,
+            seasonType: normalizeSeasonType(data.seasonType),
             deadline: data.deadline?.toDate
               ? data.deadline.toDate().toISOString().slice(0, 16) // yyyy-mm-ddThh:mm
               : data.deadline?.seconds
@@ -71,11 +66,6 @@ export default function AdminDashboard() {
             gameOfTheWeekId: data.gameOfTheWeekId
               ? String(data.gameOfTheWeekId)
               : "",
-            // wager settings (defaults)
-            wagerEnabled: data.wager?.enabled ?? true,
-            wagerMaxPoints: data.wager?.maxPoints ?? 5,
-            wagerMode: data.wager?.mode ?? "win_lose",
-            tieBehavior: data.wager?.tieBehavior ?? "push",
           }));
         } else {
           console.error("Config document not found.");
@@ -127,11 +117,6 @@ export default function AdminDashboard() {
     const { name, value, type, checked } = e.target;
     if (type === "checkbox") {
       setConfig((prev) => ({ ...prev, [name]: checked }));
-    } else if (name === "wagerMaxPoints") {
-      setConfig((prev) => ({
-        ...prev,
-        [name]: Math.max(0, parseInt(value || "0", 10)),
-      }));
     } else {
       setConfig((prev) => ({ ...prev, [name]: value }));
     }
@@ -154,7 +139,7 @@ export default function AdminDashboard() {
       const updateData = {
         week: Number(config.week),
         seasonYear: Number(config.seasonYear),
-        seasonType: String(config.seasonType), // "Regular" or "Postseason"
+        seasonType: normalizeSeasonType(config.seasonType),
         deadline: config.deadline
           ? Timestamp.fromDate(new Date(config.deadline))
           : null,
@@ -164,13 +149,6 @@ export default function AdminDashboard() {
         ...(config.gameOfTheWeekId
           ? { gameOfTheWeekId: String(config.gameOfTheWeekId) }
           : { gameOfTheWeekId: null }),
-        // Wager settings in one block (used by your API/scorer)
-        wager: {
-          enabled: !!config.wagerEnabled,
-          maxPoints: Number(config.wagerMaxPoints || 0),
-          mode: String(config.wagerMode || "win_lose"),
-          tieBehavior: String(config.tieBehavior || "push"),
-        },
       };
 
       const configRef = doc(db, "config", "config");
@@ -290,8 +268,8 @@ export default function AdminDashboard() {
               className="w-full p-2 rounded-sm border bg-[var(--input-bg)] text-[var(--input-text)]"
               required
             >
-              <option value="Regular">Regular</option>
-              <option value="Postseason">Postseason</option>
+              <option value={SEASON_TYPES.REGULAR}>Regular</option>
+              <option value={SEASON_TYPES.POSTSEASON}>Postseason</option>
             </select>
           </div>
 
@@ -337,65 +315,9 @@ export default function AdminDashboard() {
             ))}
           </select>
           <p className="text-sm opacity-70 mt-1">
-            List shows games for Week {config.week} • {config.seasonType} •{" "}
-            {config.seasonYear}.
+            List shows games for Week {config.week} •{" "}
+            {seasonTypeLabel(config.seasonType)} • {config.seasonYear}.
           </p>
-        </div>
-
-        {/* Wager settings */}
-        <div className="border-t border-[var(--border-color)] pt-4 space-y-3">
-          <h3 className="text-lg font-semibold">Wager Settings</h3>
-
-          <label className="inline-flex items-center gap-2">
-            <input
-              type="checkbox"
-              name="wagerEnabled"
-              checked={!!config.wagerEnabled}
-              onChange={handleChange}
-            />
-            <span>Enable GOTW wagers</span>
-          </label>
-
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-            <div>
-              <label className="block font-medium">Max Points</label>
-              <input
-                type="number"
-                name="wagerMaxPoints"
-                value={config.wagerMaxPoints}
-                onChange={handleChange}
-                min={0}
-                className="w-full p-2 rounded-sm border bg-[var(--input-bg)] text-[var(--input-text)]"
-              />
-            </div>
-
-            <div>
-              <label className="block font-medium">Mode</label>
-              <select
-                name="wagerMode"
-                value={config.wagerMode}
-                onChange={handleChange}
-                className="w-full p-2 rounded-sm border bg-[var(--input-bg)] text-[var(--input-text)]"
-              >
-                <option value="win_lose">Right: +N, Wrong: −N</option>
-                <option value="win_zero">Right: +N, Wrong: 0</option>
-              </select>
-            </div>
-
-            <div>
-              <label className="block font-medium">Tie Behavior</label>
-              <select
-                name="tieBehavior"
-                value={config.tieBehavior}
-                onChange={handleChange}
-                className="w-full p-2 rounded-sm border bg-[var(--input-bg)] text-[var(--input-text)]"
-              >
-                <option value="push">Push (0)</option>
-                <option value="wrong">Count as Wrong</option>
-                <option value="zero">Zero (explicit 0)</option>
-              </select>
-            </div>
-          </div>
         </div>
 
         <button

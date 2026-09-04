@@ -1,15 +1,28 @@
 // app/api/placeWager/route.js
 import { NextResponse } from "next/server";
 import { db } from "@/lib/firebaseAdmin";
+import {
+  normalizeSeasonType,
+  gameDocId,
+  picksDocId,
+  leaderboardScope,
+} from "@/lib/seasonType";
 
 export async function POST(req) {
   try {
-    const { userId, seasonYear, seasonType, week, teamId, points } =
-      await req.json();
+    const {
+      userId,
+      seasonYear,
+      seasonType: rawSeasonType,
+      week,
+      teamId,
+      points,
+    } = await req.json();
 
-    if (!userId || !seasonYear || !seasonType || !week || !teamId) {
+    if (!userId || !seasonYear || !rawSeasonType || !week || !teamId) {
       return NextResponse.json({ error: "Missing fields" }, { status: 400 });
     }
+    const seasonType = normalizeSeasonType(rawSeasonType);
 
     const cfgSnap = await db.doc("config/config").get();
     const cfg = cfgSnap.data() || {};
@@ -22,8 +35,10 @@ export async function POST(req) {
     }
 
     // ✅ enforce “only up to user’s points”
+    // Still the old top-level collection names for now -- the
+    // leaderboards/{scope}/entries consolidation is a later commit.
     const lbCollection =
-      String(seasonType).toLowerCase() === "postseason"
+      leaderboardScope(seasonType) === "postseason"
         ? "leaderboardPostseason"
         : "leaderboard";
     const lbSnap = await db.doc(`${lbCollection}/${userId}`).get();
@@ -38,8 +53,12 @@ export async function POST(req) {
     }
 
     // validate GOTW game + not locked
-    const seasonTypeSlug = String(seasonType).toLowerCase();
-    const fullGameId = `${seasonYear}-${seasonTypeSlug}-week${week}-${gotwId}`;
+    const fullGameId = gameDocId({
+      seasonYear,
+      seasonType,
+      week,
+      gameId: gotwId,
+    });
     const gameSnap = await db.doc(`games/${fullGameId}`).get();
     if (!gameSnap.exists) {
       return NextResponse.json(
@@ -74,7 +93,7 @@ export async function POST(req) {
     // `predictions`. Guarantee the doc exists first via .set(), then use
     // .update() (which does parse dotted keys as nested field paths) for the
     // prediction fields.
-    const picksId = `${seasonYear}-${seasonType}-week${week}-${userId}`;
+    const picksId = picksDocId({ seasonYear, seasonType, week, uid: userId });
     const picksRef = db.doc(`picks/${picksId}`);
     await picksRef.set(
       {

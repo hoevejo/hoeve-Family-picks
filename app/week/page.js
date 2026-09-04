@@ -14,6 +14,13 @@ import {
 } from "firebase/firestore";
 import { db } from "../../lib/firebaseConfig";
 import { useAuth } from "../../context/AuthContext";
+import {
+  SEASON_TYPES,
+  normalizeSeasonType,
+  seasonTypeLabel,
+  picksDocId,
+  leaderboardScope,
+} from "../../lib/seasonType";
 
 export default function WeeklyPicks() {
   const { user } = useAuth();
@@ -23,7 +30,7 @@ export default function WeeklyPicks() {
   const [predictions, setPredictions] = useState({});
   const [week, setWeek] = useState(null);
   const [seasonYear, setSeasonYear] = useState(null);
-  const [seasonType, setSeasonType] = useState("Regular");
+  const [seasonType, setSeasonType] = useState(SEASON_TYPES.REGULAR);
   const [deadline, setDeadline] = useState(null);
   const [isDeadlinePassed, setIsDeadlinePassed] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
@@ -54,7 +61,7 @@ export default function WeeklyPicks() {
           const c = configDoc.data();
           setWeek(c.week);
           setSeasonYear(c.seasonYear);
-          setSeasonType(c.seasonType);
+          setSeasonType(normalizeSeasonType(c.seasonType));
           if (c.gameOfTheWeekId) setGameOfTheWeekId(String(c.gameOfTheWeekId));
 
           if (c.deadline?.seconds) {
@@ -123,7 +130,7 @@ export default function WeeklyPicks() {
         const ref = doc(
           db,
           "picks",
-          `${seasonYear}-${seasonType}-week${week}-${user.uid}`,
+          picksDocId({ seasonYear, seasonType, week, uid: user.uid }),
         );
         const snap = await getDoc(ref);
         if (snap.exists()) {
@@ -149,8 +156,12 @@ export default function WeeklyPicks() {
     if (!user?.uid || !seasonType) return;
     const fetchPoints = async () => {
       try {
+        // Still the old top-level collection names for now -- the
+        // leaderboards/{scope}/entries consolidation is a later commit.
         const leaderboardCollection =
-          seasonType === "Postseason" ? "leaderboardPostseason" : "leaderboard";
+          leaderboardScope(seasonType) === "postseason"
+            ? "leaderboardPostseason"
+            : "leaderboard";
         const pointsDoc = await getDoc(
           doc(db, leaderboardCollection, user.uid),
         );
@@ -253,7 +264,7 @@ export default function WeeklyPicks() {
       const ref = doc(
         db,
         "picks",
-        `${seasonYear}-${seasonType}-week${week}-${user.uid}`,
+        picksDocId({ seasonYear, seasonType, week, uid: user.uid }),
       );
       await setDoc(
         ref,
@@ -294,12 +305,12 @@ export default function WeeklyPicks() {
         <p className="text-center">Loading...</p>
       ) : !games.length ? (
         <p className="text-center text-red-500">
-          No games available for {seasonType} - Week {week}.
+          No games available for {seasonTypeLabel(seasonType)} - Week {week}.
         </p>
       ) : !isDeadlinePassed ? (
         <>
           <h1 className="text-2xl font-bold">
-            Make Your Predictions ({seasonType} - Week {week})
+            Make Your Predictions ({seasonTypeLabel(seasonType)} - Week {week})
           </h1>
           <h2>
             Deadline:{" "}
