@@ -1,30 +1,15 @@
-// One-off: wipe the 2025 test season and all pre-migration schema debris,
-// keeping user accounts and the schema itself intact for a genuine fresh
-// start on the new season.
+// One-off: wipe a test season and pre-migration schema debris, keeping
+// user accounts and the schema itself intact for a genuine fresh start.
 //
-// Usage:
-//   pnpm run reset-season                 (dry run, default -- counts only)
-//   pnpm run reset-season -- --commit     (deletes for real)
+// Usage: pnpm run reset-season [-- --commit] (dry run by default)
 //
-// DELETES (all docs, entire collections):
-//   - Pre-migration schema debris: leaderboard, leaderboardPostseason,
-//     leaderboardAllTime, lifetimeLeaderboard, weeklyRecap
-//   - Dead config docs: config/predictionSettings, config/lastArchive
-//   - The 2025 season itself, on the NEW schema: games, picks, history,
-//     leaderboards/regular/entries, leaderboards/postseason/entries,
-//     leaderboards/allTime/entries, leaderboards/lifetime/entries
-//   - config/config itself (season-specific; recreated fresh by the next
-//     fetchGames run or by the admin page)
+// DELETES: the old top-level leaderboard/weeklyRecap collections, dead
+// config docs, and the season itself (games/picks/history/leaderboards +
+// config/config, recreated fresh by the next fetchGames run).
+// PRESERVES: users, publicProfiles, notificationSubscriptions, seasonArchives.
 //
-// PRESERVED, never touched:
-//   - users/{uid} and users/{uid}/notificationSubscriptions/*
-//   - publicProfiles/{uid}
-//   - seasonArchives/* (none exist yet, but left alone regardless)
-//
-// No archiving step -- this is a deliberate full delete of a test season,
-// not a real season boundary (that's jobs/newSeason.js's resetForNewSeason,
-// which does archive). Same safety pattern as migrate-schema.mjs: dry run
-// by default, --commit required to actually delete.
+// No archiving, unlike jobs/newSeason.js's normal season-reset flow --
+// this is a one-off full delete, not a real season boundary.
 
 import { db } from "../lib/firebaseAdmin.js";
 

@@ -20,11 +20,8 @@ async function commitInChunks(items, applyToBatch) {
   if (opsInBatch > 0) await batch.commit();
 }
 
-// The leaderboard-shaped collections carry only numeric fields now (see the
-// schema-cleanup plan) -- no fullName/profilePicture. Pulling those two
-// destructured straight off old docs is what made this job throw on
-// .set()'s undefined-field rejection before this rewrite; explicitly
-// building a numeric-only record avoids that entirely.
+// Numeric-only -- destructuring fullName/profilePicture off old docs is
+// what made this throw on .set()'s undefined-field rejection before.
 function resetEntry(uid) {
   return {
     uid,

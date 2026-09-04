@@ -17,9 +17,8 @@ export async function updateIsCorrectJob() {
 
   const seasonTypeSlug = normalizeSeasonType(seasonType);
 
-  // Explicit year/seasontype/week -- the bare scoreboard endpoint returns
-  // whatever week ESPN itself considers "current" today, which can silently
-  // disagree with the week actually being graded.
+  // Explicit params -- the bare endpoint returns whatever week ESPN
+  // considers "current," which can disagree with the week being graded.
   const res = await fetch(espnScoreboardUrl({ seasonYear, seasonType, week }));
   const json = await res.json();
   const events = json.events || [];

@@ -22,13 +22,13 @@ something "should" work without checking.
 ## Watch out
 
 - Don't mix the client and admin SDKs — different APIs.
-- `seasonType` is stored inconsistently ("Regular" / "regular" /
-  "Regular Season" / "postseason"). Normalizing it is a known task.
+- `seasonType` goes through `lib/seasonType.js` everywhere — don't hand-roll
+  normalization or ID strings.
 - Needs `.env.local` to run (`vercel env pull`). Build works without it.
 
 ## Commands
 
-- `npm run dev` / `npm run build` / `npm run lint`
+- `pnpm run dev` / `pnpm run build` / `pnpm run lint`
 - No test suite yet.
 
 <!-- BEGIN:nextjs-agent-rules -->

@@ -83,12 +83,7 @@ export default function ProfilePage() {
           firstName,
           lastName,
         };
-        // No leaderboards/*/entries write here anymore -- those docs no
-        // longer carry fullName/profilePicture at all (dead fields the
-        // leaderboard UI never actually read; it already joins against
-        // publicProfiles for display info).
-        // setDoc(merge) rather than updateDoc -- doesn't assume the
-        // publicProfiles/{uid} doc already exists.
+        // setDoc(merge), not updateDoc -- doesn't assume the doc exists.
         await setDoc(
           doc(db, "publicProfiles", user.uid),
           { fullName, firstName, lastName },

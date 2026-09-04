@@ -15,6 +15,7 @@ import { useAuth } from "../context/AuthContext";
 import EnableNotificationsPopup from "@/components/EnableNotificationsPopup";
 import { subscribeToPushNotifications } from "@/lib/pushUtils";
 import { leaderboardScope } from "@/lib/seasonType";
+import { FaTrophy } from "react-icons/fa";
 
 export default function Leaderboard() {
   const { user } = useAuth();
@@ -62,11 +63,8 @@ export default function Leaderboard() {
 
         const raw = snap.docs.map((d) => ({ id: d.id, ...d.data() }));
 
-        // Always fetch profiles fresh (server) so names/avatars update
-        // immediately. publicProfiles, not users -- this is a broad,
-        // unfiltered collection scan visible to any signed-in client, and
-        // users/{uid} carries private fields (email, isAdmin,
-        // notificationsEnabled) that have no business being fetched here.
+        // publicProfiles, not users -- avoids scanning private fields.
+        // Fetched fresh (server) so names/avatars update immediately.
         let usersSnap;
         try {
           usersSnap = await getDocsFromServer(collection(db, "publicProfiles"));
@@ -96,10 +94,8 @@ export default function Leaderboard() {
           };
         });
 
-        // Fill in every registered user who doesn't have a leaderboard doc
-        // yet (nobody's been graded this scope this season, or they just
-        // registered) at 0 points, rather than showing an empty table —
-        // this is display-only, doesn't write anything.
+        // Fill in registered users with no leaderboard doc yet at 0 points
+        // instead of an empty table -- display-only, writes nothing.
         const presentUids = new Set(rows.map((r) => r.uid));
         for (const u of Object.values(userMap)) {
           if (!u?.uid || presentUids.has(u.uid)) continue;
@@ -163,8 +159,9 @@ export default function Leaderboard() {
 
   return (
     <div className="flex flex-col items-center min-h-screen px-4 py-6 bg-[var(--bg-color)] text-[var(--text-color)] transition-colors">
-      <h1 className="text-2xl font-bold mb-4">
-        🏆 NFL Pick&apos;em Leaderboard
+      <h1 className="text-2xl font-bold mb-4 flex items-center gap-2">
+        <FaTrophy className="text-[var(--accent-color)]" />
+        NFL Pick&apos;em Leaderboard
       </h1>
 
       <div className="flex gap-4 mb-6">

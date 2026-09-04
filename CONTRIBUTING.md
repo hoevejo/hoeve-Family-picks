@@ -67,6 +67,6 @@ separately, not part of the Firestore schema cleanup).
 
 ## Known follow-ups
 
-Tracked in `dev-setup/CHECKLIST.md` §8–13: dependency upgrades (Next 16, Firebase
-12, Tailwind 4), the broken push-notification + season-reset jobs, Firestore
-security rules, the ad-hoc data model, and adding a test suite.
+Tracked in `dev-setup/CHECKLIST.md`: the notifications overhaul (`notifications/send`
+mixes the client and Admin SDKs; `sendPredictionReminder` isn't scheduled),
+writing the Firestore schema down as a doc, and adding a test suite.

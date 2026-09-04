@@ -1,70 +1,54 @@
-# 🏈 NFL Pick'em App
+# NFL Pick'em
 
-A feature-rich, family-focused NFL Pick'em app built with **Next.js**, **Firebase**, and **Tailwind CSS**. Users can predict weekly NFL game winners, track scores on a leaderboard, and view recaps — all with a sleek, responsive UI.
+A family NFL Pick'em app. Predict weekly game winners, track standings on a
+leaderboard, risk points on a weekly Game of the Week wager, and browse past
+weeks' recaps and history.
 
----
+## Features
 
-## 🚀 Features
+- User accounts via Firebase Authentication
+- Weekly predictions with deadlines, pulled from ESPN's live scoreboard
+- Leaderboard with Regular Season, Postseason, and All-Time tabs
+- Game of the Week wager — risk points (capped) for a shot at extra ones
+- Weekly recaps and a full season/history archive
+- Push notifications for reminders and results (PWA-compatible)
+- Custom avatar picker and theme support
 
-- 🔐 **User Authentication** via Firebase
-- 📊 **Leaderboard** with Regular Season, Postseason, and All-Time tabs
-- 🗓️ **Weekly Predictions** with records, game info, and deadlines
-- ✅ **Automatic Result Updates** via Vercel cron jobs
-- 🔁 **Weekly Recaps** highlighting top scorers and leaderboard movement
-- 🕰️ **History Archive** for viewing past weeks and seasons
-- 📥 **Push Notifications** for reminders and results (PWA compatible)
-- 🖼️ **Custom Profile Pictures** from curated avatar sets
-- 🎨 **Theme Support** and smooth UI transitions
+## Tech stack
 
----
+- **Frontend**: Next.js (App Router), Tailwind CSS
+- **Backend**: Firebase Authentication & Firestore, with `firestore.rules`
+  enforcing access
+- **Jobs**: Vercel cron (`fetchGames`, `calculateWeeklyResults`) plus an
+  externally-scheduled `updateIsCorrect` — see [`CONTRIBUTING.md`](CONTRIBUTING.md#scheduled-jobs)
+- **Notifications**: Web Push, Firestore-backed subscriptions
+- **Hosting**: Vercel
 
-## 🧠 Tech Stack
-
-- **Frontend**: Next.js (App Router), Tailwind CSS, Framer Motion
-- **Backend**: Firebase Authentication & Firestore
-- **Jobs / Cron**: Vercel Serverless Functions (e.g., `fetchGames`, `calculateWeeklyResults`)
-- **Notifications**: Web Push with Firestore token storage and secure trigger endpoints
-- **CI/CD**: Vercel for automatic builds and deployments
-
----
-
-## 🛠️ Getting Started
-
-### 1. Clone the repository
+## Getting started
 
 ```bash
-git clone https://github.com/your-username/nfl-pickem-app.git
-cd nfl-pickem-app
 pnpm install
-NEXT_PUBLIC_FIREBASE_API_KEY=your_api_key
-NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN=your_project.firebaseapp.com
-NEXT_PUBLIC_FIREBASE_PROJECT_ID=your_project_id
-NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID=your_sender_id
-NEXT_PUBLIC_FIREBASE_APP_ID=your_app_id
-NOTIFICATION_SECRET=your_secure_notification_key
-FIREBASE_ADMIN_KEY=your_admin_json_parsed_key
-
-📁 Folder Structure
-/app
-  ├── (protected)/           # Authenticated routes (leaderboard, predictions, profile)
-  ├── (public)/              # Login and register pages
-  └── api/                   # Serverless functions (jobs, notifications)
-
-/jobs                        # Vercel job logic (fetching games, calculating results)
-/lib                         # Firebase config, Firestore helpers, utility functions
-/components                 # Shared UI components and layout wrappers
-
-🧪 Future Roadmap
-🎲 Wager Match Bonus Point System
-
-🧑‍🤝‍🧑 League/Group Support for Friends and Communities
-
-🏆 Awards for streaks, upset picks, and seasonal records
-
-📈 Admin Dashboard Analytics
-
-🕹️ Interactive Draft Pick feature (experimental)
-
-Developed by Jon Hoeve
-Built to bring family and friends together for a fun and competitive NFL season.
+vercel env pull .env.local      # or: cp .env.example .env.local and fill in
+pnpm run dev                    # http://localhost:3000
 ```
+
+See [`CONTRIBUTING.md`](CONTRIBUTING.md) for the full setup, command
+reference, and how the scheduled jobs are wired up.
+
+## Layout
+
+```
+app/            pages ("use client", auth-gated) + app/api/ route handlers
+jobs/           job logic, uses the Firebase Admin SDK
+lib/            firebaseConfig.js (client SDK), firebaseAdmin.js (Admin SDK),
+                seasonType.js (canonical week/season-type helpers)
+context/        AuthContext.js — auth provider + useAuth
+components/     shared UI components
+scripts/        one-off Admin SDK scripts (schema migration, season reset)
+```
+
+See [`CLAUDE.md`](CLAUDE.md) for more detail on the layout and Firestore model.
+
+---
+
+Built by Jon Hoeve for family and friends.

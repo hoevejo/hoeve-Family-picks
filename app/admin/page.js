@@ -19,13 +19,10 @@ import {
   normalizeSeasonType,
   seasonTypeLabel,
 } from "@/lib/seasonType";
+import { FaBroom } from "react-icons/fa";
 
-// datetime-local inputs display/parse their value as local wall-clock time,
-// not UTC. Naively doing `date.toISOString().slice(0,16)` produces the UTC
-// wall-clock time instead -- the form would show a deadline shifted by the
-// browser's UTC offset, and saving it back (even unchanged) would silently
-// shift the stored Timestamp by that same offset every time. Shift by the
-// local offset first so the string round-trips correctly.
+// datetime-local shows/parses local time, not UTC -- shift by the local
+// offset first or the deadline silently drifts by the UTC offset on save.
 function toLocalDatetimeInputValue(date) {
   const offsetMs = date.getTimezoneOffset() * 60000;
   return new Date(date.getTime() - offsetMs).toISOString().slice(0, 16);
@@ -78,9 +75,7 @@ export default function AdminDashboard() {
             gameOfTheWeekId: data.gameOfTheWeekId
               ? String(data.gameOfTheWeekId)
               : "",
-            // Default to 5 if unset -- leaving this blank/zero would mean
-            // "unlimited," which is exactly the point-inflation problem
-            // this field exists to fix.
+            // Default to 5 -- blank/zero would mean "unlimited" again.
             wagerMaxPoints:
               data.wagerMaxPoints != null ? String(data.wagerMaxPoints) : 5,
           }));
@@ -135,9 +130,8 @@ export default function AdminDashboard() {
     if (type === "checkbox") {
       setConfig((prev) => ({ ...prev, [name]: checked }));
     } else if (["week", "seasonYear", "seasonType"].includes(name)) {
-      // A previously-selected GOTW game only exists for its own
-      // week/year/type -- clear it so a stale, mismatched id from the old
-      // combination can't get silently saved for the new one.
+      // Clear GOTW -- it only exists for its own week/year/type, and a
+      // stale id from the old combination could get silently saved.
       setConfig((prev) => ({ ...prev, [name]: value, gameOfTheWeekId: "" }));
     } else {
       setConfig((prev) => ({ ...prev, [name]: value }));
@@ -177,10 +171,8 @@ export default function AdminDashboard() {
       };
 
       const configRef = doc(db, "config", "config");
-      // setDoc(merge) rather than updateDoc -- updateDoc throws if
-      // config/config doesn't exist yet (e.g. right after a season reset,
-      // before fetchGames has run), which would leave this form unable to
-      // create it. merge:true still only touches the fields listed above.
+      // setDoc(merge), not updateDoc -- config/config may not exist yet
+      // (e.g. right after a season reset), and updateDoc would throw.
       await setDoc(configRef, updateData, { merge: true });
 
       alert("Settings updated successfully!");
@@ -226,10 +218,10 @@ export default function AdminDashboard() {
         const data = await res.json();
         throw new Error(data.error || "Unknown error");
       }
-      alert("✅ Season cleared and archived!");
+      alert("Season cleared and archived!");
     } catch (error) {
       console.error("Error resetting season:", error);
-      alert("❌ Failed to reset season. See console for details.");
+      alert("Failed to reset season. See console for details.");
     }
   };
 
@@ -390,9 +382,9 @@ export default function AdminDashboard() {
 
       <button
         onClick={handleResetSeason}
-        className="mt-4 px-4 py-2 bg-yellow-500 text-white rounded-sm hover:bg-yellow-600"
+        className="mt-4 px-4 py-2 bg-yellow-500 text-white rounded-sm hover:bg-yellow-600 inline-flex items-center gap-2"
       >
-        🧹 Clear & Archive Season
+        <FaBroom /> Clear & Archive Season
       </button>
 
       <button

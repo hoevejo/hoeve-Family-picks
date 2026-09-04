@@ -83,11 +83,8 @@ export default function Register() {
         theme: "theme-blue-light",
       });
 
-      // publicProfiles/{uid} carries only the display fields, world-readable
-      // to any signed-in user -- so pages that just need a name/avatar to
-      // render a leaderboard/recap/history entry don't have to pull every
-      // user's full users/{uid} doc (email, isAdmin, notificationsEnabled)
-      // to do it.
+      // World-readable display fields only, so other pages don't have to
+      // pull the full users/{uid} doc (email, isAdmin, etc.) for a name/avatar.
       await setDoc(doc(db, "publicProfiles", newUser.uid), {
         uid: newUser.uid,
         firstName: form.firstName,
@@ -97,10 +94,8 @@ export default function Register() {
         profilePicture: avatarUrl,
       });
 
-      // leaderboards/{scope}/entries -- no fullName here (dead field on the
-      // old top-level collections; the UI joins against publicProfiles for
-      // display info). No "lifetime" entry at registration -- that
-      // collection is only ever written by the season-reset job.
+      // No fullName (dead field, UI joins against publicProfiles) and no
+      // "lifetime" entry (only ever written by the season-reset job).
       const rankedEntry = {
         uid: newUser.uid,
         totalPoints: 0,

@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { subscribeToPushNotifications } from "@/lib/pushUtils";
+import { FaSearch } from "react-icons/fa";
 
 export default function DebugPushPage() {
   const [permission, setPermission] = useState("unknown");
@@ -12,21 +13,21 @@ export default function DebugPushPage() {
 
   useEffect(() => {
     if (!("serviceWorker" in navigator)) {
-      logLine("❌ Service workers not supported.");
+      logLine("Service workers not supported.");
       return;
     }
 
     navigator.serviceWorker.ready
       .then((reg) => {
-        logLine("✅ Service worker is ready.");
+        logLine("Service worker is ready.");
         return reg.pushManager.getSubscription();
       })
       .then((sub) => {
         if (sub) {
-          logLine("✅ Push subscription exists.");
+          logLine("Push subscription exists.");
           setSubscription(sub.toJSON());
         } else {
-          logLine("❌ No push subscription found.");
+          logLine("No push subscription found.");
         }
       });
 
@@ -35,32 +36,34 @@ export default function DebugPushPage() {
 
   const testLocalNotification = async () => {
     const reg = await navigator.serviceWorker.ready;
-    reg.showNotification("🔔 Test Notification (Local)", {
+    reg.showNotification("Test Notification (Local)", {
       body: "This is a direct test via showNotification().",
       icon: "/icons/app-icon.png",
       data: { url: "/" },
     });
-    logLine("✅ Local notification triggered.");
+    logLine("Local notification triggered.");
   };
 
   const resubscribe = async () => {
     try {
       const user = JSON.parse(localStorage.getItem("authUser")); // or use your real user object
       if (!user?.uid) {
-        logLine("❌ No user found. You must be logged in.");
+        logLine("No user found. You must be logged in.");
         return;
       }
 
       await subscribeToPushNotifications(user);
-      logLine("✅ Re-subscribed and saved to Firestore.");
+      logLine("Re-subscribed and saved to Firestore.");
     } catch (err) {
-      logLine("❌ Failed to re-subscribe: " + err.message);
+      logLine("Failed to re-subscribe: " + err.message);
     }
   };
 
   return (
     <div className="p-6 text-[var(--text-color)]">
-      <h1 className="text-2xl font-bold mb-4">🔍 Push Debug Page</h1>
+      <h1 className="text-2xl font-bold mb-4 flex items-center gap-2">
+        <FaSearch /> Push Debug Page
+      </h1>
 
       <p>
         <strong>Notification permission:</strong> {permission}

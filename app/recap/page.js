@@ -31,11 +31,7 @@ export default function WeeklyRecapPage() {
           return;
         }
 
-        // weeklyRecap is retired -- history/{weekKey}.recap has the same
-        // data (history is a strict superset: it also carries leaderboard
-        // and picks). Legacy-cased ID fallback stays for now (removed once
-        // the migration script has run and no legacy-cased history docs
-        // remain -- see the schema-cleanup plan).
+        // weeklyRecap is retired -- history/{weekKey}.recap has the same data.
         const rawType = (cfg.seasonTypeSlug || cfg.seasonType || "").toString();
         const recapId = weekKey({ seasonYear, seasonType: rawType, week: rw });
         let historyDoc = await getDoc(doc(db, "history", recapId));
@@ -63,9 +59,7 @@ export default function WeeklyRecapPage() {
           ...historyData.recap,
         };
 
-        // Build user map for names/avatars -- publicProfiles, not users,
-        // which carries private fields that have no business being broadly
-        // scanned here.
+        // publicProfiles, not users -- avoids scanning private fields.
         const usersSnap = await getDocs(collection(db, "publicProfiles"));
         const userMap = {};
         usersSnap.forEach((u) => {
