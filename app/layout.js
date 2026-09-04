@@ -6,7 +6,7 @@ import { AuthProvider, useAuth } from "../context/AuthContext";
 import Header from "../components/Header";
 import Footer from "../components/Footer";
 import LoadingScreen from "../components/LoadingScreen";
-import { Toaster } from "react-hot-toast";
+import { Toaster, toast } from "react-hot-toast";
 import "./globals.css";
 
 function ProtectedLayout({ children }) {
