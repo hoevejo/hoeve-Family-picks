@@ -1,5 +1,9 @@
 import { db } from "@/lib/firebaseAdmin";
-import { espnScoreboardUrl } from "@/lib/seasonType";
+import {
+  normalizeSeasonType,
+  gameDocId,
+  espnScoreboardUrl,
+} from "@/lib/seasonType";
 
 export async function updateIsCorrectJob() {
   console.log("🔄 Starting updateIsCorrect job...");
@@ -11,9 +15,11 @@ export async function updateIsCorrectJob() {
 
   const { seasonYear, seasonType, week } = config;
 
-  const seasonTypeSlug = String(seasonType || "").toLowerCase();
-  const gameIdPrefix = `${seasonYear}-${seasonTypeSlug}-week${week}`;
+  const seasonTypeSlug = normalizeSeasonType(seasonType);
 
+  // TODO(step 12 of the schema-cleanup plan): once the migration script has
+  // run and no legacy-cased docs remain, drop this "in" tolerance for an
+  // exact "==" match on the canonical slug.
   const seasonTypeVariants = Array.from(
     new Set([
       String(seasonType || ""),
@@ -69,7 +75,12 @@ export async function updateIsCorrectJob() {
     winners.set(gameId, winnerId);
 
     // Update the corresponding game doc if it exists for this configured week
-    const fullGameId = `${gameIdPrefix}-${gameId}`;
+    const fullGameId = gameDocId({
+      seasonYear,
+      seasonType: seasonTypeSlug,
+      week,
+      gameId,
+    });
     const gameRef = db.doc(`games/${fullGameId}`);
     const gameSnap = await gameRef.get();
     if (!gameSnap.exists) continue;

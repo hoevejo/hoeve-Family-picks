@@ -1,6 +1,10 @@
 import { db } from "../lib/firebaseAdmin";
 import { sendNotificationToUser } from "../lib/sendNotification";
-import { espnScoreboardUrl } from "../lib/seasonType";
+import {
+  normalizeSeasonType,
+  weekKey,
+  espnScoreboardUrl,
+} from "../lib/seasonType";
 
 export async function calculateWeeklyResults() {
   console.log("📊 Starting weekly results calculation...");
@@ -15,7 +19,10 @@ export async function calculateWeeklyResults() {
     ? String(cfg.gameOfTheWeekId)
     : null;
 
-  const seasonTypeSlug = String(seasonType || "").toLowerCase();
+  const seasonTypeSlug = normalizeSeasonType(seasonType);
+  // TODO(step 12 of the schema-cleanup plan): once the migration script has
+  // run and no legacy-cased docs remain, drop this "in" tolerance for an
+  // exact "==" match on the canonical slug.
   const seasonTypeVariants = Array.from(
     new Set([
       String(seasonType || ""),
@@ -24,7 +31,7 @@ export async function calculateWeeklyResults() {
     ]),
   ).filter(Boolean);
 
-  const recapDocId = `${seasonYear}-${seasonTypeSlug}-week${week}`;
+  const recapDocId = weekKey({ seasonYear, seasonType: seasonTypeSlug, week });
 
   // --- 1) Build winners + final ties from GAMES (authoritative)
   const winners = new Map(); // gameId -> winnerTeamId
