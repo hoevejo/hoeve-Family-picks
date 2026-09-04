@@ -6,26 +6,28 @@ the pickem-specific bits.
 
 ## Setup
 
-Requires **Node 22** (see `.nvmrc` — `fnm` switches automatically).
+Requires **Node 22** (see `.nvmrc` — `fnm` switches automatically) and
+**pnpm** (see `package.json` → `packageManager` — `corepack enable` picks up
+the pinned version automatically).
 
 ```bash
-npm install
+pnpm install
 vercel env pull .env.local      # or: cp .env.example .env.local and fill in
-npm run dev                     # http://localhost:3000
+pnpm run dev                    # http://localhost:3000
 ```
 
-`npm run build` works without `.env.local`; `npm run dev` needs the real values
-to actually sign in or read data.
+`pnpm run build` works without `.env.local`; `pnpm run dev` needs the real
+values to actually sign in or read data.
 
 ## Commands
 
-|                                   |                                                        |
-| --------------------------------- | ------------------------------------------------------ |
-| `npm run dev`                     | dev server                                             |
-| `npm run build` / `npm run start` | production build / serve                               |
-| `npm run lint`                    | ESLint                                                 |
-| `npm run format`                  | Prettier write (the pre-commit hook also does this)    |
-| `npm run check`                   | `format:check` + `lint` + `build` — run before pushing |
+|                                     |                                                        |
+| ----------------------------------- | ------------------------------------------------------ |
+| `pnpm run dev`                      | dev server                                             |
+| `pnpm run build` / `pnpm run start` | production build / serve                               |
+| `pnpm run lint`                     | ESLint                                                 |
+| `pnpm run format`                   | Prettier write (the pre-commit hook also does this)    |
+| `pnpm run check`                    | `format:check` + `lint` + `build` — run before pushing |
 
 ## Layout
 

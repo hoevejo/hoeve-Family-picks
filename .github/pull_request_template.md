@@ -8,7 +8,7 @@
 
 ## Testing
 
-- [ ] `npm run check` passes
+- [ ] `pnpm run check` passes
 - [ ] Tested the affected flow locally
 
 ## Notes

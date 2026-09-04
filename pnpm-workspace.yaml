@@ -1,0 +1,19 @@
+# pnpm settings live here, not in package.json (see https://pnpm.io/settings).
+
+overrides:
+  uuid: ^11.1.1
+
+# postcss@8.5.28 was already the pinned version in package-lock.json; it just
+# happens to have been (re)published within pnpm's default 24h
+# minimumReleaseAge window at the time this lockfile was generated.
+minimumReleaseAgeExclude:
+  - postcss@8.5.28
+
+# All three postinstall scripts were inspected and are benign:
+# - @firebase/util: writes a config file only if FIREBASE_WEBAPP_CONFIG is set
+# - protobufjs: prints a version-mismatch warning, no-op otherwise
+# - unrs-resolver: downloads its own prebuilt native binary (required to work)
+allowBuilds:
+  "@firebase/util": true
+  protobufjs: true
+  unrs-resolver: true
