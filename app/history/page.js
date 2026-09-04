@@ -110,9 +110,7 @@ export default function HistoryPage() {
           return;
         }
 
-        // Enrich names/avatars if missing using a publicProfiles map --
-        // not users, which carries private fields (email, isAdmin, etc.)
-        // that have no business being broadly scanned here.
+        // publicProfiles, not users -- avoids scanning private fields.
         const data = snap.data();
         const usersSnap = await getDocs(collection(db, "publicProfiles"));
         const userMap = {};

@@ -42,7 +42,7 @@ export default function WeeklyPicks() {
   const [userPoints, setUserPoints] = useState(0);
   const [wagerMaxPoints, setWagerMaxPoints] = useState(5);
   const maxWagerPoints = Math.min(userPoints, wagerMaxPoints);
-  const [isSubmitting, setIsSubmitting] = useState(false); // 👈 NEW
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
   // theme
   useEffect(() => {
@@ -231,7 +231,7 @@ export default function WeeklyPicks() {
 
   const handleSubmit = async (event) => {
     event.preventDefault();
-    if (isSubmitting) return; // 👈 guard
+    if (isSubmitting) return;
     if (!user || !seasonYear || !seasonType || !week) return;
 
     const nonGotwGames = games.filter(
@@ -259,7 +259,7 @@ export default function WeeklyPicks() {
       }
     }
 
-    setIsSubmitting(true); // 👈 lock UI
+    setIsSubmitting(true);
     try {
       // Save predictions (merge; do not overwrite doc)
       const ref = doc(
@@ -282,9 +282,8 @@ export default function WeeklyPicks() {
 
       // Place/Update Wager via API (server validates against kickoff & points)
       if (gameOfTheWeekId && wagerPick?.teamId && (wagerPick.points ?? 0) > 0) {
-        // auth.currentUser, not the merged `user` from context -- object
-        // spread in AuthContext.js drops the Firebase Auth User's prototype
-        // methods (getIdToken included), so `user.getIdToken` doesn't exist.
+        // auth.currentUser, not `user` -- object spread in AuthContext.js
+        // drops the Auth User's prototype methods, getIdToken included.
         const idToken = await auth.currentUser.getIdToken();
         const resp = await fetch("/api/placeWager", {
           method: "POST",
@@ -309,7 +308,7 @@ export default function WeeklyPicks() {
     } catch (error) {
       console.error("Error submitting:", error);
       alert("Something went wrong submitting your picks. Please try again.");
-      setIsSubmitting(false); // 👈 re-enable on error
+      setIsSubmitting(false);
     }
   };
 

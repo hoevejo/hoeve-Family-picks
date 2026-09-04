@@ -59,9 +59,8 @@ export async function calculateWeeklyResults() {
     (k) => !winners.has(k) && !finalTies.has(k),
   );
   if (missing.length > 0) {
-    // Explicit year/seasontype/week -- the bare scoreboard endpoint returns
-    // whatever week ESPN itself considers "current" today, which can
-    // silently disagree with the week actually being graded.
+    // Explicit params -- the bare endpoint returns whatever week ESPN
+    // considers "current," which can disagree with the week being graded.
     const res = await fetch(
       espnScoreboardUrl({ seasonYear, seasonType, week }),
     );
@@ -128,13 +127,8 @@ export async function calculateWeeklyResults() {
   const userWeeklyDetails = []; // [{ uid, fullName, score }]
   const weeklyPicks = []; // compact for history
 
-  // .update(), not .set(...,{merge:true}) -- `data` here has dotted-string
-  // keys like `predictions.${gameId}.isCorrect`. Firestore only parses those
-  // as nested field paths for .update(); .set()'s merge only follows real
-  // object nesting, so a dotted string key there was landing as a literal
-  // top-level field named e.g. "predictions.123.isCorrect", never actually
-  // nesting under the real `predictions` map. .update() is safe here since
-  // every `ref` comes from an already-fetched picksSnap doc.
+  // .update(), not .set(merge) -- dotted keys like predictions.X.isCorrect
+  // only nest via .update(); .set(merge) wrote them as literal field names.
   const commitBatch = async (writes) => {
     if (!writes.length) return;
     const b = db.batch();
@@ -258,9 +252,8 @@ export async function calculateWeeklyResults() {
       ? prevTotal - prevLast + thisWeekPoints
       : prevTotal + thisWeekPoints;
 
-    // Deliberately not spreading ...prev here -- older docs may still carry
-    // dead fullName/profilePicture fields from before the leaderboard
-    // consolidation; the UI joins against publicProfiles for display info.
+    // Not spreading ...prev -- older docs may still carry dead
+    // fullName/profilePicture fields; UI joins against publicProfiles.
     const record = {
       uid,
       lastWeekPoints: thisWeekPoints,
@@ -352,13 +345,10 @@ export async function calculateWeeklyResults() {
     (u) => (u.positionChange ?? 0) === maxDrop,
   );
 
-  // weeklyRecap is retired -- it duplicated exactly this data under the same
-  // ID scheme as history, just flattened at the top level instead of nested
-  // under `recap`. app/recap/page.js now reads history/{weekKey}.recap.
+  // weeklyRecap is retired -- app/recap/page.js reads history/{weekKey}.recap.
 
-  // Compact per-game summary for the /history page's "Weekly Matchups"
-  // section (components/GamePredictionView.js) -- built from gameById,
-  // already in memory from step 1, no extra reads needed.
+  // Compact per-game summary for /history's "Weekly Matchups" section --
+  // built from gameById, already in memory, no extra reads.
   const historyGames = Array.from(gameById.values()).map((gd) => ({
     id: gd.id,
     name: gd.name,

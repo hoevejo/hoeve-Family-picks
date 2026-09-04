@@ -11,9 +11,8 @@ import { verifyIdToken } from "@/lib/verifyRequest";
 
 export async function POST(req) {
   try {
-    // The caller's own verified identity, not a body-supplied userId --
-    // this route used to trust `userId` from the request body outright,
-    // letting anyone place/overwrite a wager on any known uid.
+    // The caller's own verified identity -- this used to trust a
+    // body-supplied userId, letting anyone wager on any known uid.
     const userId = await verifyIdToken(req);
     if (!userId) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
@@ -42,12 +41,9 @@ export async function POST(req) {
       );
     }
 
-    // ✅ enforce "only up to user's points", capped at config.wagerMaxPoints
-    // regardless of standing -- uncapped wagers let a leader dump their
-    // entire lead into one bet and blow the season open in a single week.
-    // Defaults to 15 if the admin hasn't saved a value yet, so the cap is
-    // protective immediately rather than only after someone remembers to
-    // configure it.
+    // Capped at wagerMaxPoints regardless of standing, not just userTotal --
+    // stops a leader from dumping their whole lead into one bet. Defaults
+    // to 5 if unset so it's protective before anyone configures it.
     const lbCollection = `leaderboards/${leaderboardScope(seasonType)}/entries`;
     const lbSnap = await db.doc(`${lbCollection}/${userId}`).get();
     const userTotal = Number((lbSnap.data() || {}).totalPoints || 0);
@@ -96,13 +92,8 @@ export async function POST(req) {
       );
     }
 
-    // upsert to picks doc (merge) + sync GOTW prediction.
-    // Two writes, not one: .set(...,{merge:true}) only merges based on real
-    // object nesting -- a dotted-string key like `predictions.${gotwId}.teamId`
-    // in that call lands as a literal top-level field, not nested under
-    // `predictions`. Guarantee the doc exists first via .set(), then use
-    // .update() (which does parse dotted keys as nested field paths) for the
-    // prediction fields.
+    // Two writes, not one: .set(merge) doesn't nest dotted-string keys like
+    // .update() does, so the doc's created first, then predictions updated.
     const picksId = picksDocId({ seasonYear, seasonType, week, uid: userId });
     const picksRef = db.doc(`picks/${picksId}`);
     const profileSnap = await db.doc(`publicProfiles/${userId}`).get();

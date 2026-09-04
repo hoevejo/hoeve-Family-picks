@@ -63,11 +63,8 @@ export default function Leaderboard() {
 
         const raw = snap.docs.map((d) => ({ id: d.id, ...d.data() }));
 
-        // Always fetch profiles fresh (server) so names/avatars update
-        // immediately. publicProfiles, not users -- this is a broad,
-        // unfiltered collection scan visible to any signed-in client, and
-        // users/{uid} carries private fields (email, isAdmin,
-        // notificationsEnabled) that have no business being fetched here.
+        // publicProfiles, not users -- avoids scanning private fields.
+        // Fetched fresh (server) so names/avatars update immediately.
         let usersSnap;
         try {
           usersSnap = await getDocsFromServer(collection(db, "publicProfiles"));
@@ -97,10 +94,8 @@ export default function Leaderboard() {
           };
         });
 
-        // Fill in every registered user who doesn't have a leaderboard doc
-        // yet (nobody's been graded this scope this season, or they just
-        // registered) at 0 points, rather than showing an empty table —
-        // this is display-only, doesn't write anything.
+        // Fill in registered users with no leaderboard doc yet at 0 points
+        // instead of an empty table -- display-only, writes nothing.
         const presentUids = new Set(rows.map((r) => r.uid));
         for (const u of Object.values(userMap)) {
           if (!u?.uid || presentUids.has(u.uid)) continue;

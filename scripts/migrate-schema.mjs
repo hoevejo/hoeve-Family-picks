@@ -1,22 +1,9 @@
-// One-off migration onto the new Firestore schema (see
-// C:\Users\Jon\.claude\plans\async-spinning-pony.md for the full design).
+// One-off migration onto the new Firestore schema.
 //
-// Usage:
-//   node --env-file=.env.local scripts/migrate-schema.mjs            (dry run, default)
-//   node --env-file=.env.local scripts/migrate-schema.mjs --commit   (writes for real)
-//   node --env-file=.env.local scripts/migrate-schema.mjs --only=users,picks
-//
-// Or via the package.json script (loads .env.local automatically):
-//   pnpm run migrate
-//   pnpm run migrate -- --commit
-//
-// Safety properties, on purpose:
-//   - Dry run is the DEFAULT. You must pass --commit to write anything.
-//   - Every write is `.set(data, {merge:true})` keyed by a stable,
-//     deterministically-derived ID (uid, or the canonical week/game ID) --
-//     idempotent by construction, safe to re-run as many times as you like.
-//   - Old collections/docs are never touched or deleted. Cleanup is a manual
-//     step you do yourself once you've verified the new data looks right.
+// Usage: pnpm run migrate [-- --commit] [-- --only=users,picks]
+// Dry run by default; --commit required to write. Every write is a merge
+// keyed by a stable id, so it's idempotent -- safe to re-run. Never
+// touches/deletes old collections; that cleanup is manual, once verified.
 
 import { db } from "../lib/firebaseAdmin.js";
 import {
@@ -198,9 +185,8 @@ async function migrateGames() {
   );
 }
 
-// Folds literal top-level fields like "predictions.123.teamId" (the
-// dotted-key merge bug's fingerprint) back into a real nested `predictions`
-// map. Safe no-op on docs that were never affected.
+// Folds the dotted-key merge bug's literal fields (e.g. "predictions.123.teamId")
+// back into a real nested predictions map. No-op on unaffected docs.
 function repairDottedPredictions(data) {
   const predictions = { ...(data.predictions || {}) };
   let repaired = false;
