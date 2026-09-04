@@ -3,6 +3,7 @@
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import Image from "next/image";
+import { FaStar } from "react-icons/fa";
 import {
   collection,
   doc,
@@ -406,7 +407,7 @@ export default function WeeklyPicks() {
               <div className="my-6 p-5 rounded-xl border border-[var(--border-color)] bg-[var(--card-color)] shadow-md">
                 <div className="flex items-center justify-center mb-3">
                   <span className="inline-flex items-center gap-2 rounded-full px-3 py-1 text-xs font-semibold border border-amber-400/50 text-amber-500">
-                    ⭐ Game of the Week
+                    <FaStar /> Game of the Week
                   </span>
                 </div>
 
@@ -524,7 +525,7 @@ export default function WeeklyPicks() {
                 <summary className="px-4 py-3 font-semibold cursor-pointer flex items-center justify-between gap-2">
                   <div className="flex items-center gap-2">
                     {String(game.id) === String(gameOfTheWeekId) && (
-                      <span className="text-yellow-500">⭐</span>
+                      <FaStar className="text-yellow-500" />
                     )}
 
                     <Image

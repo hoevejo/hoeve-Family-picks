@@ -15,6 +15,7 @@ import { useAuth } from "../context/AuthContext";
 import EnableNotificationsPopup from "@/components/EnableNotificationsPopup";
 import { subscribeToPushNotifications } from "@/lib/pushUtils";
 import { leaderboardScope } from "@/lib/seasonType";
+import { FaTrophy } from "react-icons/fa";
 
 export default function Leaderboard() {
   const { user } = useAuth();
@@ -163,8 +164,9 @@ export default function Leaderboard() {
 
   return (
     <div className="flex flex-col items-center min-h-screen px-4 py-6 bg-[var(--bg-color)] text-[var(--text-color)] transition-colors">
-      <h1 className="text-2xl font-bold mb-4">
-        🏆 NFL Pick&apos;em Leaderboard
+      <h1 className="text-2xl font-bold mb-4 flex items-center gap-2">
+        <FaTrophy className="text-[var(--accent-color)]" />
+        NFL Pick&apos;em Leaderboard
       </h1>
 
       <div className="flex gap-4 mb-6">

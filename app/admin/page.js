@@ -19,6 +19,7 @@ import {
   normalizeSeasonType,
   seasonTypeLabel,
 } from "@/lib/seasonType";
+import { FaBroom } from "react-icons/fa";
 
 // datetime-local inputs display/parse their value as local wall-clock time,
 // not UTC. Naively doing `date.toISOString().slice(0,16)` produces the UTC
@@ -226,10 +227,10 @@ export default function AdminDashboard() {
         const data = await res.json();
         throw new Error(data.error || "Unknown error");
       }
-      alert("✅ Season cleared and archived!");
+      alert("Season cleared and archived!");
     } catch (error) {
       console.error("Error resetting season:", error);
-      alert("❌ Failed to reset season. See console for details.");
+      alert("Failed to reset season. See console for details.");
     }
   };
 
@@ -390,9 +391,9 @@ export default function AdminDashboard() {
 
       <button
         onClick={handleResetSeason}
-        className="mt-4 px-4 py-2 bg-yellow-500 text-white rounded-sm hover:bg-yellow-600"
+        className="mt-4 px-4 py-2 bg-yellow-500 text-white rounded-sm hover:bg-yellow-600 inline-flex items-center gap-2"
       >
-        🧹 Clear & Archive Season
+        <FaBroom /> Clear & Archive Season
       </button>
 
       <button
