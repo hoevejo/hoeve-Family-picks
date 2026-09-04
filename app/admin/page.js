@@ -6,7 +6,7 @@ import { auth, db } from "../../lib/firebaseConfig";
 import {
   doc,
   getDoc,
-  updateDoc,
+  setDoc,
   Timestamp,
   collection,
   getDocs,
@@ -19,6 +19,17 @@ import {
   normalizeSeasonType,
   seasonTypeLabel,
 } from "@/lib/seasonType";
+
+// datetime-local inputs display/parse their value as local wall-clock time,
+// not UTC. Naively doing `date.toISOString().slice(0,16)` produces the UTC
+// wall-clock time instead -- the form would show a deadline shifted by the
+// browser's UTC offset, and saving it back (even unchanged) would silently
+// shift the stored Timestamp by that same offset every time. Shift by the
+// local offset first so the string round-trips correctly.
+function toLocalDatetimeInputValue(date) {
+  const offsetMs = date.getTimezoneOffset() * 60000;
+  return new Date(date.getTime() - offsetMs).toISOString().slice(0, 16);
+}
 
 export default function AdminDashboard() {
   const { user, isAdmin, loading } = useAuth();
@@ -57,11 +68,11 @@ export default function AdminDashboard() {
             seasonYear: data.seasonYear || new Date().getFullYear(),
             seasonType: normalizeSeasonType(data.seasonType),
             deadline: data.deadline?.toDate
-              ? data.deadline.toDate().toISOString().slice(0, 16) // yyyy-mm-ddThh:mm
+              ? toLocalDatetimeInputValue(data.deadline.toDate())
               : data.deadline?.seconds
-                ? new Date(data.deadline.seconds * 1000)
-                    .toISOString()
-                    .slice(0, 16)
+                ? toLocalDatetimeInputValue(
+                    new Date(data.deadline.seconds * 1000),
+                  )
                 : "",
             recapWeek: data.recapWeek ?? "",
             gameOfTheWeekId: data.gameOfTheWeekId
@@ -123,6 +134,11 @@ export default function AdminDashboard() {
     const { name, value, type, checked } = e.target;
     if (type === "checkbox") {
       setConfig((prev) => ({ ...prev, [name]: checked }));
+    } else if (["week", "seasonYear", "seasonType"].includes(name)) {
+      // A previously-selected GOTW game only exists for its own
+      // week/year/type -- clear it so a stale, mismatched id from the old
+      // combination can't get silently saved for the new one.
+      setConfig((prev) => ({ ...prev, [name]: value, gameOfTheWeekId: "" }));
     } else {
       setConfig((prev) => ({ ...prev, [name]: value }));
     }
@@ -161,7 +177,11 @@ export default function AdminDashboard() {
       };
 
       const configRef = doc(db, "config", "config");
-      await updateDoc(configRef, updateData);
+      // setDoc(merge) rather than updateDoc -- updateDoc throws if
+      // config/config doesn't exist yet (e.g. right after a season reset,
+      // before fetchGames has run), which would leave this form unable to
+      // create it. merge:true still only touches the fields listed above.
+      await setDoc(configRef, updateData, { merge: true });
 
       alert("Settings updated successfully!");
     } catch (err) {
@@ -190,7 +210,9 @@ export default function AdminDashboard() {
 
   const handleResetSeason = async () => {
     const confirmed = confirm(
-      "Are you sure you want to clear and archive the current season?\n\nThis will delete all picks, games, and weekly recaps. It cannot be undone.",
+      "Are you sure you want to clear and archive the current season?\n\n" +
+        "This archives and deletes games and picks, and resets the regular/postseason/all-time leaderboards to 0 (rolling everyone's all-time total into their lifetime total first). " +
+        "History and everyone's account stay intact. It cannot be undone.",
     );
     if (!confirmed) return;
 
