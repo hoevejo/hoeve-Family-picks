@@ -3,7 +3,6 @@ import webpush from "web-push";
 export const runtime = "nodejs";
 
 import { db } from "@/lib/firebaseAdmin";
-import { getDocs, collectionGroup } from "firebase/firestore";
 
 let vapidConfigured = false;
 
@@ -36,9 +35,9 @@ export async function POST(request) {
     const payload = JSON.stringify({ title, body, url });
 
     // Grab all subscriptions from all users
-    const subsSnap = await getDocs(
-      collectionGroup(db, "notificationSubscriptions"),
-    );
+    const subsSnap = await db
+      .collectionGroup("notificationSubscriptions")
+      .get();
 
     let successCount = 0;
     let errorCount = 0;

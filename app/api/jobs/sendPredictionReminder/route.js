@@ -1,15 +1,14 @@
 export const runtime = "nodejs";
 
 import { sendPredictionReminder } from "@/jobs/sendPredictionReminder";
+import { verifyCronSecret } from "@/lib/verifyRequest";
 
+// Machine-triggered by an external scheduler, same as updateIsCorrect --
+// CRON_SECRET, not NOTIFICATION_SECRET (that's for our own server-to-server
+// calls to /api/notifications/send).
 export async function GET(req) {
-  const authHeader = req.headers.get("authorization");
-  const secret = process.env.NOTIFICATION_SECRET;
-
-  if (authHeader !== `Bearer ${secret}`) {
-    return new Response(JSON.stringify({ error: "Unauthorized" }), {
-      status: 401,
-    });
+  if (!verifyCronSecret(req)) {
+    return Response.json({ error: "Unauthorized" }, { status: 401 });
   }
 
   try {

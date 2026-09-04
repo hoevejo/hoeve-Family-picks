@@ -2,6 +2,7 @@ import { db } from "../lib/firebaseAdmin";
 import { sendNotificationToUser } from "../lib/sendNotification";
 import {
   normalizeSeasonType,
+  seasonTypeLabel,
   weekKey,
   espnScoreboardUrl,
   leaderboardScope,
@@ -385,6 +386,12 @@ export async function calculateWeeklyResults() {
     games: historyGames,
     gameOfTheWeekId,
     createdAt: new Date(),
+  });
+
+  await sendNotificationToUser({
+    title: "This week's results are in!",
+    body: `${seasonTypeLabel(seasonTypeSlug)} Week ${week} has been graded -- check the recap to see how you did.`,
+    url: "/recap",
   });
 
   console.log("✅ Weekly results calculation completed.");

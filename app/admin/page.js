@@ -186,8 +186,10 @@ export default function AdminDashboard() {
 
   const handleTestNotification = async () => {
     try {
+      const idToken = await auth.currentUser.getIdToken();
       const res = await fetch("/api/notifications/adminTest", {
         method: "POST",
+        headers: { Authorization: `Bearer ${idToken}` },
       });
       if (!res.ok) {
         const data = await res.json();
