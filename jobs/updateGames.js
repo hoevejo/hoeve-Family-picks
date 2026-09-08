@@ -2,12 +2,38 @@ import { db } from "@/lib/firebaseAdmin";
 import { Timestamp } from "firebase-admin/firestore";
 import { sendNotificationToUser } from "../lib/sendNotification";
 import {
+  SEASON_TYPES,
   normalizeSeasonType,
   seasonTypeLabel,
   weekKey,
   gameDocId,
   espnScoreboardUrl,
 } from "../lib/seasonType";
+
+// Probes forward from the requested week until it finds one ESPN actually
+// has games for. Needed because "no games this week" doesn't just mean
+// "season over": regular season stops dead at week 18 with nothing beyond
+// it (no signal in the data itself, you just get an empty week), and
+// postseason has its own gap -- week 4 (the Pro Bowl bye between the
+// Conference Championships and the Super Bowl) also returns zero games,
+// one week before the Super Bowl. Confirmed against ESPN's live API.
+async function resolveWeekWithGames({ seasonYear, seasonType, week }) {
+  let candidate = { seasonType: normalizeSeasonType(seasonType), week };
+
+  for (let attempt = 0; attempt < 6; attempt++) {
+    const res = await fetch(espnScoreboardUrl({ seasonYear, ...candidate }));
+    const data = await res.json();
+    const games = data?.events || [];
+    if (games.length) return { ...candidate, data, games };
+
+    candidate =
+      candidate.seasonType === SEASON_TYPES.REGULAR
+        ? { seasonType: SEASON_TYPES.POSTSEASON, week: 1 } // regular season only ever runs out this way -- straight to Wild Card weekend
+        : { seasonType: SEASON_TYPES.POSTSEASON, week: candidate.week + 1 }; // postseason: keep advancing past gaps (e.g. the Pro Bowl bye) until the Super Bowl, or genuinely nothing's left
+  }
+
+  return null; // exhausted -- season is actually over
+}
 
 /**
  * Fetch and store games for a target week.
@@ -43,23 +69,24 @@ export async function fetchAndStoreGames(opts = {}) {
     opts.useNextWeek || (!opts.week && deadlinePassed),
   );
 
-  const targetWeek = useNextWeek ? cfgWeek + 1 : cfgWeek;
+  const requestedWeek = useNextWeek ? cfgWeek + 1 : cfgWeek;
   const targetYear = cfgSeasonYear;
-  const seasonType = normalizeSeasonType(cfgSeasonType); // canonical slug, e.g. "regular"
 
-  // ---- call ESPN for the explicit target WEEK/YEAR/TYPE
-  const res = await fetch(
-    espnScoreboardUrl({ seasonYear: targetYear, seasonType, week: targetWeek }),
-  );
-  const data = await res.json();
-
-  const games = data?.events || [];
-  if (!games.length) {
+  // ---- resolve the actual next week with games -- may not be the
+  // requested one, e.g. regular season week 19 doesn't exist, so this
+  // rolls forward into postseason week 1 automatically.
+  const resolved = await resolveWeekWithGames({
+    seasonYear: targetYear,
+    seasonType: cfgSeasonType,
+    week: requestedWeek,
+  });
+  if (!resolved) {
     return {
       success: false,
-      message: `No games found for year=${targetYear}, type=${seasonType}, week=${targetWeek}`,
+      message: `No games found starting from year=${targetYear}, type=${normalizeSeasonType(cfgSeasonType)}, week=${requestedWeek} -- season appears to be over.`,
     };
   }
+  const { seasonType, week: targetWeek, data, games } = resolved;
 
   // End-of-season safeguard (from returned payload if present)
   const leagueEndDateStr = data?.leagues?.[0]?.season?.endDate;
