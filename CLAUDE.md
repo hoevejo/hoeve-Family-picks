@@ -17,7 +17,9 @@ something "should" work without checking.
 - `lib/firebaseConfig.js` — **client** SDK (Auth + Firestore) for the browser
 - `context/AuthContext.js` — auth provider + `useAuth`
 - Firestore is the source of truth; `config/config` holds the active
-  week / deadline / rules
+  week / deadline / rules. Collections, doc shapes, and ID conventions are in
+  [`docs/firestore-schema.md`](docs/firestore-schema.md) — read it before
+  touching anything that reads or writes Firestore.
 
 ## Watch out
 
