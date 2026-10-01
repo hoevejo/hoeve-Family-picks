@@ -457,6 +457,9 @@ export default function WeeklyPicks() {
                           <span className="mt-2 text-lg font-semibold truncate w-full">
                             {team.mascot || team.name}
                           </span>
+                          <span className="text-sm text-gray-500">
+                            Record: {team.record?.trim() ? team.record : "0-0"}
+                          </span>
                         </label>
                       ))}
                     </div>
