@@ -210,7 +210,6 @@ export async function fetchAndStoreGames(opts = {}) {
       endOfSeason: leagueEndDate
         ? Timestamp.fromDate(leagueEndDate)
         : prev.endOfSeason || null,
-      recapWeek: Math.max(0, targetWeek - 1),
       gameOfTheWeekId,
       lastUpdated: new Date().toISOString(),
     },
