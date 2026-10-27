@@ -32,7 +32,12 @@ export default function WeeklyRecapPage() {
         }
 
         // weeklyRecap is retired -- history/{weekKey}.recap has the same data.
-        const rawType = (cfg.seasonTypeSlug || cfg.seasonType || "").toString();
+        const rawType = (
+          cfg.recapSeasonType ||
+          cfg.seasonTypeSlug ||
+          cfg.seasonType ||
+          ""
+        ).toString();
         const recapId = weekKey({ seasonYear, seasonType: rawType, week: rw });
         let historyDoc = await getDoc(doc(db, "history", recapId));
 

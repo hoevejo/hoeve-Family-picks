@@ -388,6 +388,14 @@ export async function calculateWeeklyResults() {
     createdAt: new Date(),
   });
 
+  // Point /recap at the week just graded before announcing it -- fetchGames
+  // doesn't run until Wednesday, so it can't own this. recapSeasonType is
+  // stored too because fetchGames may flip seasonType to postseason while
+  // the recap is still regular season week 18.
+  await db
+    .doc("config/config")
+    .set({ recapWeek: week, recapSeasonType: seasonTypeSlug }, { merge: true });
+
   await sendNotificationToUser({
     title: "This week's results are in!",
     body: `${seasonTypeLabel(seasonTypeSlug)} Week ${week} has been graded -- check the recap to see how you did.`,

@@ -33,12 +33,13 @@ export default function HistoryPage() {
         const configDoc = await getDoc(doc(db, "config", "config"));
         if (!configDoc.exists()) return;
 
-        const { seasonYear, recapWeek, seasonType } = configDoc.data();
+        const { seasonYear, recapWeek, recapSeasonType, seasonType } =
+          configDoc.data();
         setSelectedYear(Number(seasonYear));
         setSelectedWeek(Number(recapWeek));
         // Normalize initial UI value to "Regular"/"Postseason"
         setSelectedSeasonType(
-          normalizeSeasonType(seasonType) === "postseason"
+          normalizeSeasonType(recapSeasonType || seasonType) === "postseason"
             ? "Postseason"
             : "Regular",
         );
