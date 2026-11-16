@@ -7,6 +7,13 @@ import Image from "next/image";
 import { Toaster, toast } from "react-hot-toast";
 import RecapSection from "../../components/RecapSection";
 import { weekKey, seasonTypeLabel } from "../../lib/seasonType";
+import {
+  FaArrowDown,
+  FaArrowUp,
+  FaChartBar,
+  FaFire,
+  FaSnowflake,
+} from "react-icons/fa";
 
 export default function WeeklyRecapPage() {
   const [recap, setRecap] = useState(null);
@@ -117,84 +124,166 @@ export default function WeeklyRecapPage() {
     return (total / recap.scores.length).toFixed(2);
   }, [recap]);
 
+  const sortedScores = useMemo(
+    () =>
+      [...(recap?.scores || [])].sort(
+        (a, b) => (Number(b.score) || 0) - (Number(a.score) || 0),
+      ),
+    [recap],
+  );
+  const highScore = Number(sortedScores[0]?.score) || 0;
+
   if (loading) {
     return (
-      <>
+      <div
+        className="max-w-3xl mx-auto py-6 space-y-3"
+        aria-label="Loading recap"
+      >
         <Toaster position="top-center" />
-        <p className="text-center mt-6 text-[var(--text-color)]">
-          Loading recap...
-        </p>
-      </>
+        {Array.from({ length: 3 }).map((_, i) => (
+          <div
+            key={i}
+            className="h-32 rounded-2xl bg-surface border border-line animate-pulse"
+          />
+        ))}
+      </div>
     );
   }
 
-  if (recapWeek === 0) {
+  if (recapWeek === 0 || !recap) {
     return (
-      <>
+      <div className="max-w-3xl mx-auto py-6">
         <Toaster position="top-center" />
-        <p className="text-center mt-6 text-[var(--text-color)]">
-          No weekly recap yet — come back next week for results!
-        </p>
-      </>
-    );
-  }
-
-  if (!recap) {
-    return (
-      <>
-        <Toaster position="top-center" />
-        <p className="text-center mt-6 text-red-500">No recap data found.</p>
-      </>
+        <div className="rounded-2xl bg-surface border border-line shadow-card p-8 text-center">
+          <p className="font-semibold">
+            {recapWeek === 0 ? "No weekly recap yet" : "No recap data found."}
+          </p>
+          {recapWeek === 0 && (
+            <p className="text-sm text-muted mt-1">
+              Come back next week for results!
+            </p>
+          )}
+        </div>
+      </div>
     );
   }
 
   return (
-    <div className="min-h-screen px-4 py-6 bg-[var(--bg-color)] text-[var(--text-color)] transition-colors">
+    <div className="max-w-3xl mx-auto py-6 space-y-5">
       <Toaster position="top-center" />
-      <h1 className="text-3xl font-bold text-center mb-6">
-        📝 Week {recap.week} Recap ({seasonTypeLabel(recap.seasonType)})
-      </h1>
+      <div className="space-y-1">
+        <p className="text-xs font-bold uppercase tracking-widest text-accent-text">
+          {seasonTypeLabel(recap.seasonType)}
+        </p>
+        <h1 className="text-4xl uppercase italic leading-none">
+          Week {recap.week} Recap
+        </h1>
+      </div>
 
-      <div className="max-w-3xl mx-auto space-y-6">
-        <RecapSection title="🔥 Top Scorers" users={recap.topScorers} />
-        <RecapSection title="❄️ Lowest Scorers" users={recap.lowestScorers} />
-        <RecapSection title="📈 Biggest Risers" users={recap.biggestRisers} />
-        <RecapSection title="📉 Biggest Fallers" users={recap.biggestFallers} />
+      {/* Headline numbers */}
+      <div className="grid grid-cols-3 rounded-2xl bg-accent-gradient text-white shadow-card divide-x divide-white/20">
+        {[
+          ["High", recap.highestScore ?? highScore],
+          ["Average", avgScore],
+          ["Players", recap.scores?.length || 0],
+        ].map(([label, value]) => (
+          <div key={label} className="py-4 text-center">
+            <div className="font-display text-4xl font-extrabold tabular-nums leading-none">
+              {value}
+            </div>
+            <div className="mt-1 text-[11px] font-semibold uppercase tracking-wider">
+              {label}
+            </div>
+          </div>
+        ))}
+      </div>
 
-        <div className="bg-[var(--card-color)] border border-[var(--border-color)] rounded-xl p-4 shadow-sm">
-          <h2 className="text-xl font-bold mb-3 text-[var(--text-color)]">
-            📊 All Scores
-          </h2>
-          {recap.scores?.length ? (
-            <>
-              <ul className="space-y-2">
-                {recap.scores.map((u) => (
-                  <li key={u.uid} className="flex items-center gap-3">
-                    <Image
-                      src={u.profilePicture || "/default-avatar.png"}
-                      alt={u.fullName || u.uid}
-                      width={32}
-                      height={32}
-                      className="rounded-full border border-[var(--border-color)]"
-                    />
-                    <span className="text-[var(--text-color)] font-medium">
-                      {u.fullName || u.uid}
-                    </span>
-                    <span className="ml-auto text-[var(--text-color)] font-semibold">
-                      {u.score} pts
-                    </span>
-                  </li>
-                ))}
-              </ul>
-              <p className="text-center text-sm text-[var(--text-color)] mt-4">
-                {recap.scores.length} participants — Avg Score: {avgScore}
-              </p>
-            </>
-          ) : (
-            <p className="opacity-70">No scores recorded.</p>
-          )}
-        </div>
+      <div className="grid gap-4 sm:grid-cols-2">
+        <RecapSection
+          title="Top Scorers"
+          icon={FaFire}
+          tone="gold"
+          users={recap.topScorers}
+          stat={(u) => `${u.lastWeekPoints ?? 0} pts`}
+        />
+        <RecapSection
+          title="Lowest Scorers"
+          icon={FaSnowflake}
+          tone="ice"
+          users={recap.lowestScorers}
+          stat={(u) => `${u.lastWeekPoints ?? 0} pts`}
+        />
+        <RecapSection
+          title="Biggest Risers"
+          icon={FaArrowUp}
+          tone="up"
+          users={recap.biggestRisers}
+          stat={(u) => formatMove(u.positionChange)}
+        />
+        <RecapSection
+          title="Biggest Fallers"
+          icon={FaArrowDown}
+          tone="down"
+          users={recap.biggestFallers}
+          stat={(u) => formatMove(u.positionChange)}
+        />
+      </div>
+
+      <div className="rounded-2xl bg-surface border border-line shadow-card p-4">
+        <h2 className="flex items-center gap-2 mb-3 text-xl uppercase">
+          <span className="grid place-items-center h-8 w-8 rounded-lg text-base bg-accent/15 text-accent-text">
+            <FaChartBar />
+          </span>
+          All Scores
+        </h2>
+        {sortedScores.length ? (
+          <ol className="space-y-2.5">
+            {sortedScores.map((u, i) => {
+              const score = Number(u.score) || 0;
+              return (
+                <li key={u.uid} className="flex items-center gap-3">
+                  <span className="w-5 text-center font-display font-bold text-muted tabular-nums">
+                    {i + 1}
+                  </span>
+                  <Image
+                    src={u.profilePicture || "/default-avatar.png"}
+                    alt={u.fullName || u.uid}
+                    width={32}
+                    height={32}
+                    className="h-8 w-8 rounded-full object-cover"
+                  />
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-baseline justify-between gap-2">
+                      <span className="font-medium truncate">
+                        {u.fullName || u.uid}
+                      </span>
+                      <span className="font-display text-lg font-bold tabular-nums">
+                        {u.score} pts
+                      </span>
+                    </div>
+                    <div className="mt-1 h-1.5 rounded-full bg-surface-2 overflow-hidden">
+                      <div
+                        className="h-full rounded-full bg-accent-gradient"
+                        style={{
+                          width: `${highScore > 0 ? (score / highScore) * 100 : 0}%`,
+                        }}
+                      />
+                    </div>
+                  </div>
+                </li>
+              );
+            })}
+          </ol>
+        ) : (
+          <p className="text-sm text-muted">No scores recorded.</p>
+        )}
       </div>
     </div>
   );
+}
+
+function formatMove(change = 0) {
+  if (change > 0) return `▲${change}`;
+  if (change < 0) return `▼${Math.abs(change)}`;
+  return "—";
 }
