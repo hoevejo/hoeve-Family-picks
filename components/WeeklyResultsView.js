@@ -77,7 +77,7 @@ export default function WeeklyResultsView({
                       </span>
                     </div>
 
-                    <ul className="flex flex-wrap gap-1.5">
+                    <ul className="flex flex-col gap-1">
                       {usersForTeam.map((entry) => {
                         const pred = entry.predictions?.[String(game.id)];
                         const isCorrect = pred?.isCorrect;
@@ -92,15 +92,15 @@ export default function WeeklyResultsView({
                         return (
                           <li
                             key={entry.userId}
-                            className={`px-2.5 py-1 rounded-full text-sm font-medium ${userColor} ${
-                              isYou ? "ring-2 ring-accent" : ""
+                            className={`flex items-center justify-between gap-2 px-3 py-1.5 rounded-lg text-sm font-medium ${userColor} ${
+                              isYou ? "ring-2 ring-inset ring-accent" : ""
                             }`}
                           >
                             {isYou ? "You" : entry.fullName || entry.userId}
                             {isGotw &&
                               String(entry.wager?.teamId) === String(team.id) &&
                               Number(entry.wager?.points) > 0 && (
-                                <span className="ml-1 font-bold text-gold-text">
+                                <span className="font-bold text-gold-text tabular-nums">
                                   {entry.wager.points} pts
                                 </span>
                               )}
