@@ -11,23 +11,17 @@ export default function Modal({ onClose, children }) {
 
   return (
     <div
-      className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm px-4"
+      className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm px-4"
       onClick={onClose}
     >
       <div
-        className="relative rounded-lg shadow-xl p-6 max-w-md w-full max-h-[90vh] overflow-y-auto"
-        style={{
-          backgroundColor: "var(--card-color)",
-          color: "var(--text-color)",
-          border: "1px solid var(--border-color)",
-        }}
+        className="relative w-full max-w-md max-h-[90vh] overflow-y-auto rounded-2xl bg-surface text-fg border border-line shadow-card p-6"
         onClick={(e) => e.stopPropagation()}
       >
         {/* Close Button */}
         <button
           onClick={onClose}
-          className="absolute top-2 right-2 text-2xl hover:text-red-500"
-          style={{ color: "var(--text-color)" }}
+          className="absolute top-3 right-3 grid place-items-center h-8 w-8 rounded-full text-2xl leading-none text-muted hover:text-fg hover:bg-surface-2 transition-colors"
           aria-label="Close"
         >
           &times;

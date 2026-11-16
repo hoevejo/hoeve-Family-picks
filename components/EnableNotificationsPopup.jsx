@@ -20,28 +20,28 @@ export default function EnableNotificationsPopup({ onConfirm, onDismiss }) {
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm px-4">
-      <div className="bg-[var(--card-color)] text-[var(--text-color)] p-6 rounded-lg shadow-xl w-full max-w-md">
-        <h2 className="text-xl font-semibold mb-2">Enable Notifications?</h2>
-        <p className="mb-4 text-sm">
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm px-4">
+      <div className="w-full max-w-md rounded-2xl bg-surface text-fg border border-line shadow-card p-6">
+        <h2 className="text-2xl uppercase mb-2">Enable Notifications?</h2>
+        <p className="mb-5 text-sm text-muted">
           Turn on notifications to get reminders and updates when new games are
           available, results are calculated, and more!
         </p>
 
-        {error && <p className="text-red-500 text-sm mb-2">{error}</p>}
+        {error && <p className="text-danger text-sm mb-3">{error}</p>}
 
-        <div className="flex justify-end space-x-4">
+        <div className="grid grid-cols-2 gap-2">
           <button
             onClick={onDismiss}
             disabled={loading}
-            className="px-4 py-2 rounded-sm bg-gray-300 text-sm text-black hover:bg-gray-400"
+            className="py-2.5 rounded-xl bg-surface-2 border border-line text-sm font-semibold hover:bg-accent/10 transition-colors disabled:opacity-60"
           >
             Maybe Later
           </button>
           <button
             onClick={handleConfirm}
             disabled={loading}
-            className="px-4 py-2 rounded-sm bg-[var(--accent-color)] text-white text-sm hover:bg-[var(--accent-hover)]"
+            className="py-2.5 rounded-xl bg-accent text-white text-sm font-semibold hover:bg-accent-hover transition-colors disabled:opacity-60"
           >
             {loading ? "Enabling..." : "Enable"}
           </button>
