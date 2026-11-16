@@ -149,30 +149,29 @@ export default function Leaderboard() {
     return entry.currentRank || index + 1;
   };
 
-  if (loading) {
-    return (
-      <p className="text-center mt-10 text-[var(--text-color)]">
-        Loading leaderboard...
-      </p>
-    );
-  }
+  const isAllTime = activeTab === "All-Time";
+  const podium = leaderboard.length >= 3 ? leaderboard.slice(0, 3) : [];
+  const rest = podium.length ? leaderboard.slice(3) : leaderboard;
 
   return (
-    <div className="flex flex-col items-center min-h-screen px-4 py-6 bg-[var(--bg-color)] text-[var(--text-color)] transition-colors">
-      <h1 className="text-2xl font-bold mb-4 flex items-center gap-2">
-        <FaTrophy className="text-[var(--accent-color)]" />
-        NFL Pick&apos;em Leaderboard
-      </h1>
+    <div className="max-w-3xl mx-auto py-6 space-y-5">
+      <div className="flex items-end justify-between gap-3">
+        <h1 className="text-4xl uppercase italic leading-none flex items-center gap-2">
+          <FaTrophy className="text-accent-text text-3xl not-italic" />
+          Leaderboard
+        </h1>
+      </div>
 
-      <div className="flex gap-4 mb-6">
+      {/* Season scope switch */}
+      <div className="grid grid-cols-3 gap-1 p-1 rounded-xl bg-surface-2 border border-line">
         {tabs.map((tab) => (
           <button
             key={tab}
             onClick={() => setActiveTab(tab)}
-            className={`px-4 py-2 rounded-full font-medium transition border text-sm sm:text-base ${
+            className={`py-2 rounded-lg text-sm font-semibold transition-colors ${
               activeTab === tab
-                ? "bg-[var(--accent-color)] text-white border-transparent"
-                : "bg-transparent border-[var(--border-color)] text-[var(--text-color)] hover:bg-[var(--accent-color)/10]"
+                ? "bg-accent text-white shadow-card"
+                : "text-muted hover:text-fg"
             }`}
           >
             {tab}
@@ -180,84 +179,84 @@ export default function Leaderboard() {
         ))}
       </div>
 
-      <div className="w-full max-w-6xl bg-[var(--card-color)] border border-[var(--border-color)] rounded-xl shadow-md overflow-x-auto">
-        <table className="w-full text-sm sm:text-base table-auto border-collapse">
-          <thead className="bg-[var(--accent-color)] text-white">
-            <tr>
-              <th className="px-4 py-3 text-center w-16 border-x border-[var(--border-color)]">
-                Rank
-              </th>
-              <th className="px-4 py-3 text-left border-l border-[var(--border-color)]">
-                Player
-              </th>
-              <th className="px-4 py-3 text-right w-24 border-r border-[var(--border-color)]">
-                Total Points
-              </th>
-              {activeTab !== "All-Time" && (
-                <th className="px-2 py-3 text-center w-5 border-x border-[var(--border-color)]">
-                  Change
-                </th>
-              )}
-            </tr>
-          </thead>
-          <tbody className="divide-y divide-[var(--border-color)]">
-            {leaderboard.map((entry, index) => {
-              const isCurrentUser = user?.uid === entry.uid;
-              const rank = getRankDisplay(index, entry);
-              const change = entry.positionChange || 0;
+      {loading ? (
+        <div className="space-y-2" aria-label="Loading leaderboard">
+          {Array.from({ length: 6 }).map((_, i) => (
+            <div
+              key={i}
+              className="h-16 rounded-xl bg-surface border border-line animate-pulse"
+            />
+          ))}
+        </div>
+      ) : leaderboard.length === 0 ? (
+        <p className="text-center text-muted py-10">No players yet.</p>
+      ) : (
+        <>
+          {podium.length > 0 && (
+            <section className="rounded-2xl bg-accent-gradient text-white shadow-card px-3 pt-6 overflow-hidden">
+              <div className="grid grid-cols-3 items-end gap-2">
+                {[1, 0, 2].map((pos) => (
+                  <PodiumSpot
+                    key={podium[pos].uid || podium[pos].id || pos}
+                    entry={podium[pos]}
+                    place={pos}
+                    rank={getRankDisplay(pos, podium[pos])}
+                    isCurrentUser={user?.uid === podium[pos].uid}
+                    showChange={!isAllTime}
+                  />
+                ))}
+              </div>
+            </section>
+          )}
 
-              return (
-                <tr
-                  key={entry.uid || entry.id || index}
-                  className={`transition ${
-                    isCurrentUser
-                      ? "bg-[var(--accent-color)/10] font-semibold"
-                      : "hover:bg-[var(--accent-color)/5]"
-                  }`}
-                >
-                  <td className="px-4 py-3 text-center font-bold border-x border-[var(--border-color)]">
-                    {rank}
-                  </td>
+          {rest.length > 0 && (
+            <ol className="rounded-2xl bg-surface border border-line shadow-card overflow-hidden divide-y divide-line">
+              {rest.map((entry, i) => {
+                const index = i + podium.length;
+                const isCurrentUser = user?.uid === entry.uid;
 
-                  <td className="px-4 py-3 whitespace-nowrap border-l border-[var(--border-color)]">
-                    <div className="flex items-center gap-2">
-                      <Image
-                        src={entry.profilePicture}
-                        alt={entry.firstName}
-                        width={32}
-                        height={32}
-                        className="rounded-full object-cover"
-                      />
-                      <span className="font-medium">{entry.firstName}</span>
-                    </div>
-                  </td>
-
-                  <td className="px-4 py-3 text-right font-semibold border-r border-[var(--border-color)]">
-                    {entry.totalPoints}
-                  </td>
-
-                  {activeTab !== "All-Time" && (
-                    <td
-                      className={`px-2 py-3 text-center font-medium border-x border-[var(--border-color)] ${
-                        change > 0
-                          ? "text-green-500"
-                          : change < 0
-                            ? "text-red-500"
-                            : "text-gray-500"
-                      }`}
-                    >
-                      {change > 0 && "▲ "}
-                      {change < 0 && "▼ "}
-                      {change === 0 && "—"}
-                      {change !== 0 && Math.abs(change)}
-                    </td>
-                  )}
-                </tr>
-              );
-            })}
-          </tbody>
-        </table>
-      </div>
+                return (
+                  <li
+                    key={entry.uid || entry.id || index}
+                    className={`relative flex items-center gap-3 px-4 py-3 ${
+                      isCurrentUser ? "bg-accent/10" : ""
+                    }`}
+                  >
+                    {isCurrentUser && (
+                      <span className="absolute left-0 inset-y-0 w-1 bg-accent" />
+                    )}
+                    <span className="w-7 text-center font-display text-xl font-bold text-muted tabular-nums">
+                      {getRankDisplay(index, entry)}
+                    </span>
+                    <Image
+                      src={entry.profilePicture}
+                      alt={entry.firstName}
+                      width={40}
+                      height={40}
+                      className="h-10 w-10 rounded-full object-cover"
+                    />
+                    <span className="flex-1 min-w-0 flex items-center gap-2">
+                      <span className="font-semibold truncate">
+                        {entry.firstName}
+                      </span>
+                      {isCurrentUser && <YouTag />}
+                    </span>
+                    {!isAllTime && (
+                      <ChangeBadge change={entry.positionChange || 0} />
+                    )}
+                    <span className="w-16 text-right">
+                      <span className="font-display text-2xl font-bold tabular-nums">
+                        {entry.totalPoints}
+                      </span>
+                      <span className="ml-1 text-xs text-muted">pts</span>
+                    </span>
+                  </li>
+                );
+              })}
+            </ol>
+          )}
+        </>
+      )}
 
       {showPopup && user && (
         <EnableNotificationsPopup
@@ -269,5 +268,94 @@ export default function Leaderboard() {
         />
       )}
     </div>
+  );
+}
+
+// Gold / silver / bronze, indexed by podium position (0 = first).
+const MEDALS = [
+  { ring: "ring-[#f5b301]", badge: "bg-[#f5b301] text-black", block: "h-24" },
+  { ring: "ring-[#c0c7d1]", badge: "bg-[#c0c7d1] text-black", block: "h-16" },
+  { ring: "ring-[#cd7f32]", badge: "bg-[#cd7f32] text-white", block: "h-12" },
+];
+
+function PodiumSpot({ entry, place, rank, isCurrentUser, showChange }) {
+  const medal = MEDALS[place];
+  const size = place === 0 ? 72 : 56;
+
+  return (
+    <div className="flex flex-col items-center min-w-0">
+      <div className="relative">
+        <Image
+          src={entry.profilePicture}
+          alt={entry.firstName}
+          width={size}
+          height={size}
+          style={{ width: size, height: size }}
+          className={`rounded-full object-cover ring-4 ${medal.ring}`}
+        />
+        <span
+          className={`absolute -bottom-2 left-1/2 -translate-x-1/2 grid place-items-center h-6 min-w-6 px-1 rounded-full text-xs font-bold shadow ${medal.badge}`}
+        >
+          {rank}
+        </span>
+      </div>
+      <span className="mt-3 max-w-full truncate font-semibold text-sm">
+        {entry.firstName}
+        {isCurrentUser && " (You)"}
+      </span>
+      <span
+        className={`font-display font-extrabold tabular-nums leading-none ${
+          place === 0 ? "text-4xl" : "text-3xl"
+        }`}
+      >
+        {entry.totalPoints}
+      </span>
+      <span className="text-[11px] font-semibold uppercase tracking-wider text-white">
+        pts
+      </span>
+      {showChange && (
+        <span className="mt-1 h-5">
+          <ChangeBadge change={entry.positionChange || 0} onDark />
+        </span>
+      )}
+      <div
+        className={`mt-2 w-full rounded-t-xl bg-white/15 ring-1 ring-white/20 ${medal.block}`}
+      />
+    </div>
+  );
+}
+
+function ChangeBadge({ change, onDark = false }) {
+  if (change === 0) {
+    return (
+      <span
+        className={`inline-block w-10 text-center text-sm ${onDark ? "text-white" : "text-muted"}`}
+      >
+        —
+      </span>
+    );
+  }
+  const up = change > 0;
+  const tone = onDark
+    ? "bg-black/25 text-white"
+    : up
+      ? "bg-success/15 text-success"
+      : "bg-danger/15 text-danger";
+
+  return (
+    <span
+      className={`inline-flex items-center justify-center gap-0.5 w-10 py-0.5 rounded-full text-xs font-bold ${tone}`}
+    >
+      {up ? "▲" : "▼"}
+      {Math.abs(change)}
+    </span>
+  );
+}
+
+function YouTag() {
+  return (
+    <span className="shrink-0 px-1.5 py-0.5 rounded-md bg-accent text-white text-[10px] font-bold uppercase tracking-wider">
+      You
+    </span>
   );
 }

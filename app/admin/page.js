@@ -19,7 +19,7 @@ import {
   normalizeSeasonType,
   seasonTypeLabel,
 } from "@/lib/seasonType";
-import { FaBroom } from "react-icons/fa";
+import { FaBell, FaBroom, FaSignOutAlt, FaStar } from "react-icons/fa";
 
 // datetime-local shows/parses local time, not UTC -- shift by the local
 // offset first or the deadline silently drifts by the UTC offset on save.
@@ -234,168 +234,209 @@ export default function AdminDashboard() {
 
   if (loading || fetching) {
     return (
-      <p className="text-center mt-10 text-[var(--text-color)]">Loading...</p>
+      <div className="max-w-2xl mx-auto py-6 space-y-3" aria-label="Loading">
+        {Array.from({ length: 2 }).map((_, i) => (
+          <div
+            key={i}
+            className="h-48 rounded-2xl bg-surface border border-line animate-pulse"
+          />
+        ))}
+      </div>
     );
   }
-  if (!user) {
+  if (!user || !isAdmin) {
     return (
-      <p className="text-center mt-10 text-red-500">
-        You must be logged in to access this page.
-      </p>
-    );
-  }
-  if (!isAdmin) {
-    return (
-      <p className="text-center mt-10 text-red-500">
-        You do not have permission to view this page.
-      </p>
+      <div className="max-w-2xl mx-auto py-6">
+        <div className="rounded-2xl bg-surface border border-line shadow-card p-8 text-center">
+          <p className="font-semibold text-danger">
+            {!user
+              ? "You must be logged in to access this page."
+              : "You do not have permission to view this page."}
+          </p>
+        </div>
+      </div>
     );
   }
 
   return (
-    <div className="min-h-screen px-4 py-6 bg-[var(--bg-color)] text-[var(--text-color)] transition-colors flex flex-col items-center">
-      <h1 className="text-3xl font-bold text-center mb-6">Admin Dashboard</h1>
-      {error && <p className="text-red-500 mt-2">{error}</p>}
+    <div className="max-w-2xl mx-auto py-6 space-y-4">
+      <div className="space-y-1">
+        <p className="text-xs font-bold uppercase tracking-widest text-accent-text">
+          Dashboard
+        </p>
+        <h1 className="text-4xl uppercase italic leading-none">Admin</h1>
+      </div>
 
-      <form
-        onSubmit={handleSubmit}
-        className="w-full max-w-2xl bg-[var(--card-color)] border border-[var(--border-color)] rounded-xl shadow-md p-6 space-y-6"
-      >
-        <h2 className="text-xl font-semibold">Update Prediction Settings</h2>
+      {error && (
+        <p className="rounded-xl bg-danger/10 border border-danger/30 text-danger font-medium px-4 py-3">
+          {error}
+        </p>
+      )}
 
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          <div>
-            <label className="block font-medium">Week Number</label>
-            <input
-              type="number"
-              name="week"
-              value={config.week}
-              onChange={handleChange}
-              className="w-full p-2 rounded-sm border bg-[var(--input-bg)] text-[var(--input-text)]"
-              required
-            />
+      <form onSubmit={handleSubmit} className="space-y-4">
+        <section className={card}>
+          <h2 className={cardTitle}>Prediction Settings</h2>
+
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <Field label="Week Number">
+              <input
+                type="number"
+                name="week"
+                value={config.week}
+                onChange={handleChange}
+                className={field}
+                required
+              />
+            </Field>
+
+            <Field label="Season Year">
+              <input
+                type="number"
+                name="seasonYear"
+                value={config.seasonYear}
+                onChange={handleChange}
+                className={field}
+                required
+              />
+            </Field>
+
+            <Field label="Season Type">
+              <select
+                name="seasonType"
+                value={config.seasonType}
+                onChange={handleChange}
+                className={field}
+                required
+              >
+                <option value={SEASON_TYPES.REGULAR}>Regular</option>
+                <option value={SEASON_TYPES.POSTSEASON}>Postseason</option>
+              </select>
+            </Field>
+
+            <Field label="Deadline">
+              <input
+                type="datetime-local"
+                name="deadline"
+                value={config.deadline}
+                onChange={handleChange}
+                className={field}
+                required
+              />
+            </Field>
+
+            <Field label="Recap Week">
+              <input
+                type="number"
+                name="recapWeek"
+                value={config.recapWeek}
+                onChange={handleChange}
+                className={field}
+                required
+              />
+            </Field>
           </div>
+        </section>
 
-          <div>
-            <label className="block font-medium">Season Year</label>
-            <input
-              type="number"
-              name="seasonYear"
-              value={config.seasonYear}
-              onChange={handleChange}
-              className="w-full p-2 rounded-sm border bg-[var(--input-bg)] text-[var(--input-text)]"
-              required
-            />
-          </div>
+        <section className={`${card} border-2 border-[#f5b301]/70`}>
+          <h2 className={`${cardTitle} flex items-center gap-2`}>
+            <FaStar className="text-[#f5b301]" /> Game of the Week
+          </h2>
 
-          <div>
-            <label className="block font-medium">Season Type</label>
-            <select
-              name="seasonType"
-              value={config.seasonType}
-              onChange={handleChange}
-              className="w-full p-2 rounded-sm border bg-[var(--input-bg)] text-[var(--input-text)]"
-              required
+          <div className="space-y-4">
+            <Field
+              label="Game"
+              hint={`List shows games for Week ${config.week} • ${seasonTypeLabel(config.seasonType)} • ${config.seasonYear}.`}
             >
-              <option value={SEASON_TYPES.REGULAR}>Regular</option>
-              <option value={SEASON_TYPES.POSTSEASON}>Postseason</option>
-            </select>
+              <select
+                name="gameOfTheWeekId"
+                value={config.gameOfTheWeekId || ""}
+                onChange={handleChange}
+                className={field}
+              >
+                <option value="">— None —</option>
+                {gamesForWeek.map((g) => (
+                  <option key={g.id} value={g.id}>
+                    {g.label}
+                  </option>
+                ))}
+              </select>
+            </Field>
+
+            <Field
+              label="Max Wager Points"
+              hint="Most points anyone can risk on the Game of the Week, regardless of their current total."
+            >
+              <input
+                type="number"
+                name="wagerMaxPoints"
+                value={config.wagerMaxPoints}
+                onChange={handleChange}
+                min={1}
+                required
+                className={field}
+              />
+            </Field>
           </div>
-
-          <div>
-            <label className="block font-medium">Deadline</label>
-            <input
-              type="datetime-local"
-              name="deadline"
-              value={config.deadline}
-              onChange={handleChange}
-              className="w-full p-2 rounded-sm border bg-[var(--input-bg)] text-[var(--input-text)]"
-              required
-            />
-          </div>
-
-          <div>
-            <label className="block font-medium">Recap Week</label>
-            <input
-              type="number"
-              name="recapWeek"
-              value={config.recapWeek}
-              onChange={handleChange}
-              className="w-full p-2 rounded-sm border bg-[var(--input-bg)] text-[var(--input-text)]"
-              required
-            />
-          </div>
-        </div>
-
-        {/* Game of the Week */}
-        <div className="border-t border-[var(--border-color)] pt-4">
-          <label className="block font-semibold mb-2">Game of the Week</label>
-          <select
-            name="gameOfTheWeekId"
-            value={config.gameOfTheWeekId || ""}
-            onChange={handleChange}
-            className="w-full p-2 rounded-sm border bg-[var(--input-bg)] text-[var(--input-text)]"
-          >
-            <option value="">— None —</option>
-            {gamesForWeek.map((g) => (
-              <option key={g.id} value={g.id}>
-                {g.label}
-              </option>
-            ))}
-          </select>
-          <p className="text-sm opacity-70 mt-1">
-            List shows games for Week {config.week} •{" "}
-            {seasonTypeLabel(config.seasonType)} • {config.seasonYear}.
-          </p>
-
-          <label className="block font-semibold mb-2 mt-4">
-            Max Wager Points
-          </label>
-          <input
-            type="number"
-            name="wagerMaxPoints"
-            value={config.wagerMaxPoints}
-            onChange={handleChange}
-            min={1}
-            required
-            className="w-full p-2 rounded-sm border bg-[var(--input-bg)] text-[var(--input-text)]"
-          />
-          <p className="text-sm opacity-70 mt-1">
-            Most points anyone can risk on the Game of the Week, regardless of
-            their current total.
-          </p>
-        </div>
+        </section>
 
         <button
           type="submit"
           disabled={saving}
-          className="w-full px-4 py-2 bg-[var(--accent-color)] text-white rounded-sm hover:bg-[var(--accent-hover)]"
+          className="w-full py-3.5 rounded-xl bg-accent-gradient text-white font-display text-xl font-extrabold uppercase italic tracking-wide shadow-card transition hover:brightness-110 disabled:opacity-60"
         >
           {saving ? "Saving..." : "Save Changes"}
         </button>
       </form>
 
-      <button
-        onClick={handleTestNotification}
-        className="mt-4 px-4 py-2 bg-blue-500 text-white rounded-sm hover:bg-blue-600"
-      >
-        Send Test Notification
-      </button>
+      <section className={card}>
+        <h2 className={cardTitle}>Tools</h2>
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+          <button
+            onClick={handleTestNotification}
+            className="inline-flex items-center justify-center gap-2 py-2.5 rounded-xl bg-surface-2 border border-line font-semibold hover:bg-accent/10 hover:border-accent transition-colors"
+          >
+            <FaBell /> Send Test Notification
+          </button>
+          <button
+            onClick={handleLogout}
+            className="inline-flex items-center justify-center gap-2 py-2.5 rounded-xl bg-surface-2 border border-line font-semibold hover:bg-accent/10 hover:border-accent transition-colors"
+          >
+            <FaSignOutAlt /> Logout
+          </button>
+        </div>
+      </section>
 
-      <button
-        onClick={handleResetSeason}
-        className="mt-4 px-4 py-2 bg-yellow-500 text-white rounded-sm hover:bg-yellow-600 inline-flex items-center gap-2"
-      >
-        <FaBroom /> Clear & Archive Season
-      </button>
-
-      <button
-        onClick={handleLogout}
-        className="mt-6 px-4 py-2 bg-red-500 text-white rounded-sm hover:bg-red-600"
-      >
-        Logout
-      </button>
+      <section className={`${card} border-danger/40 bg-danger/5`}>
+        <h2 className={`${cardTitle} text-danger`}>Danger Zone</h2>
+        <p className="text-sm text-muted mb-3">
+          Archives and deletes this season&apos;s games and picks and resets the
+          leaderboards. History and accounts stay intact. Can&apos;t be undone.
+        </p>
+        <button
+          onClick={handleResetSeason}
+          className="w-full inline-flex items-center justify-center gap-2 py-2.5 rounded-xl bg-[#c21f1f] text-white font-semibold hover:brightness-110 transition"
+        >
+          <FaBroom /> Clear & Archive Season
+        </button>
+      </section>
     </div>
+  );
+}
+
+const card = "rounded-2xl bg-surface border border-line shadow-card p-5";
+const cardTitle = "text-xl uppercase mb-4";
+const field =
+  "w-full rounded-xl bg-surface-2 border border-line px-3 py-2.5 text-fg focus:outline-none focus:ring-2 focus:ring-accent";
+
+function Field({ label, hint, children }) {
+  return (
+    <label className="block">
+      <span className="block mb-1.5 text-xs font-bold uppercase tracking-widest text-muted">
+        {label}
+      </span>
+      {children}
+      {hint && <span className="block mt-1.5 text-sm text-muted">{hint}</span>}
+    </label>
   );
 }
 

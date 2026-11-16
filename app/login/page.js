@@ -5,6 +5,11 @@ import { signInWithEmailAndPassword } from "firebase/auth";
 import { auth } from "../../lib/firebaseConfig";
 import { useAuth } from "../../context/AuthContext";
 import toast from "react-hot-toast";
+import AuthShell, {
+  authButtonClass,
+  authInputClass,
+  authLinkClass,
+} from "../../components/AuthShell";
 
 export default function Login() {
   const { user, loading } = useAuth();
@@ -44,59 +49,47 @@ export default function Login() {
   };
 
   return (
-    <div
-      className="relative min-h-screen flex items-center justify-center bg-cover bg-center bg-no-repeat"
-      style={{ backgroundImage: "url('/images/football-background.png')" }}
+    <AuthShell
+      title="Login"
+      footer={
+        <>
+          Don’t have an account?{" "}
+          <a href="/register" className={authLinkClass}>
+            Register
+          </a>
+        </>
+      }
     >
-      {/* Dark overlay */}
-      <div className="absolute inset-0 bg-black/40 z-0" />
-
-      {/* Padded container to avoid screen-edge clipping */}
-      <div className="relative z-10 w-full max-w-md px-4">
-        <div className="bg-white shadow-2xl rounded-xl p-8 backdrop-blur-md">
-          <h1 className="text-3xl font-bold text-blue-800 text-center mb-6">
-            Login
-          </h1>
-
-          <form onSubmit={handleLogin} className="space-y-4">
-            <input
-              type="email"
-              placeholder="Email"
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              required
-              aria-label="Email"
-              className="w-full p-3 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-            />
-            <input
-              type="password"
-              placeholder="Password"
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              required
-              aria-label="Password"
-              className="w-full p-3 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-            />
-            <button
-              type="submit"
-              disabled={isLoggingIn}
-              className="w-full bg-blue-600 text-white py-2 rounded-lg font-medium hover:bg-blue-700 transition flex justify-center items-center gap-2"
-            >
-              {isLoggingIn && (
-                <span className="h-4 w-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
-              )}
-              {isLoggingIn ? "Logging in..." : "Login"}
-            </button>
-          </form>
-
-          <p className="text-center text-sm text-gray-600 mt-4">
-            Don’t have an account?{" "}
-            <a href="/register" className="text-blue-600 hover:underline">
-              Register
-            </a>
-          </p>
-        </div>
-      </div>
-    </div>
+      <form onSubmit={handleLogin} className="space-y-4">
+        <input
+          type="email"
+          placeholder="Email"
+          value={email}
+          onChange={(e) => setEmail(e.target.value)}
+          required
+          aria-label="Email"
+          className={authInputClass}
+        />
+        <input
+          type="password"
+          placeholder="Password"
+          value={password}
+          onChange={(e) => setPassword(e.target.value)}
+          required
+          aria-label="Password"
+          className={authInputClass}
+        />
+        <button
+          type="submit"
+          disabled={isLoggingIn}
+          className={authButtonClass}
+        >
+          {isLoggingIn && (
+            <span className="h-4 w-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
+          )}
+          {isLoggingIn ? "Logging in..." : "Login"}
+        </button>
+      </form>
+    </AuthShell>
   );
 }

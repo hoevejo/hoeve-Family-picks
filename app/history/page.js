@@ -1,12 +1,12 @@
 "use client";
 
-import { useEffect, useState, useMemo } from "react";
+import { useEffect, useState } from "react";
 import { db } from "../../lib/firebaseConfig";
 import { getDoc, doc, collection, getDocs } from "firebase/firestore";
-import Image from "next/image";
 import WeeklyResultsView from "../../components/WeeklyResultsView";
 import { Toaster, toast } from "react-hot-toast";
-import RecapSection from "../../components/RecapSection";
+import RecapSummary from "../../components/RecapSummary";
+import { FaChevronDown } from "react-icons/fa";
 import { useAuth } from "../../context/AuthContext";
 import {
   normalizeSeasonType,
@@ -165,133 +165,87 @@ export default function HistoryPage() {
     })();
   }, [selectedYear, selectedWeek, selectedSeasonType]);
 
-  const avgScore = useMemo(() => {
-    if (!history?.recap?.scores?.length) return 0;
-    const total = history.recap.scores.reduce(
-      (s, u) => s + (Number(u.score) || 0),
-      0,
-    );
-    return (total / history.recap.scores.length).toFixed(2);
-  }, [history]);
-
   return (
-    <div className="min-h-screen px-4 py-6 bg-[var(--bg-color)] text-[var(--text-color)] transition-colors">
+    <div className="max-w-3xl mx-auto py-6 space-y-5">
       <Toaster position="top-center" />
-      <div className="max-w-4xl mx-auto mb-6">
-        <h1 className="text-3xl font-bold mb-4">📚 Weekly History</h1>
-        <div className="flex flex-col sm:flex-row gap-4">
-          <select
-            value={selectedYear || ""}
-            onChange={(e) => setSelectedYear(Number(e.target.value))}
-            className="p-2 rounded-md bg-[var(--card-color)] text-[var(--text-color)] border border-[var(--border-color)]"
-          >
-            {availableYears.length === 0 ? (
-              <option disabled>No years available</option>
-            ) : (
-              availableYears.map((year) => (
-                <option key={year} value={year}>
-                  {year}
-                </option>
-              ))
-            )}
-          </select>
+      <h1 className="text-4xl uppercase italic leading-none">History</h1>
 
-          <select
-            value={selectedSeasonType}
-            onChange={(e) => setSelectedSeasonType(e.target.value)}
-            className="p-2 rounded-md bg-[var(--card-color)] text-[var(--text-color)] border border-[var(--border-color)]"
-          >
-            <option value="Regular">Regular Season</option>
-            <option value="Postseason">Postseason</option>
-          </select>
+      <div className="grid grid-cols-[auto_1fr_auto] gap-2">
+        <FilterSelect
+          label="Year"
+          value={selectedYear || ""}
+          onChange={(e) => setSelectedYear(Number(e.target.value))}
+        >
+          {availableYears.length === 0 ? (
+            <option disabled>No years available</option>
+          ) : (
+            availableYears.map((year) => (
+              <option key={year} value={year}>
+                {year}
+              </option>
+            ))
+          )}
+        </FilterSelect>
 
-          <select
-            value={selectedWeek || ""}
-            onChange={(e) => setSelectedWeek(Number(e.target.value))}
-            className="p-2 rounded-md bg-[var(--card-color)] text-[var(--text-color)] border border-[var(--border-color)]"
-          >
-            {availableWeeks.length === 0 ? (
-              <option disabled>No weeks available</option>
-            ) : (
-              availableWeeks.map((week) => (
-                <option key={week} value={week}>
-                  Week {week}
-                </option>
-              ))
-            )}
-          </select>
-        </div>
+        <FilterSelect
+          label="Season"
+          value={selectedSeasonType}
+          onChange={(e) => setSelectedSeasonType(e.target.value)}
+        >
+          <option value="Regular">Regular Season</option>
+          <option value="Postseason">Postseason</option>
+        </FilterSelect>
+
+        <FilterSelect
+          label="Week"
+          value={selectedWeek || ""}
+          onChange={(e) => setSelectedWeek(Number(e.target.value))}
+        >
+          {availableWeeks.length === 0 ? (
+            <option disabled>No weeks available</option>
+          ) : (
+            availableWeeks.map((week) => (
+              <option key={week} value={week}>
+                Week {week}
+              </option>
+            ))
+          )}
+        </FilterSelect>
       </div>
 
       {loading ? (
-        <p className="text-center text-[var(--text-color)] mt-4">
-          Loading history...
-        </p>
+        <div className="space-y-3" aria-label="Loading history">
+          {Array.from({ length: 3 }).map((_, i) => (
+            <div
+              key={i}
+              className="h-32 rounded-2xl bg-surface border border-line animate-pulse"
+            />
+          ))}
+        </div>
       ) : !history ? (
-        <p className="text-center text-red-500 mt-4">No history data found.</p>
+        <div className="rounded-2xl bg-surface border border-line shadow-card p-8 text-center">
+          <p className="font-semibold">No history data found.</p>
+          <p className="text-sm text-muted mt-1">
+            Try a different week or season.
+          </p>
+        </div>
       ) : (
-        <div className="max-w-4xl mx-auto space-y-6">
-          <h2 className="text-xl font-bold text-center mb-6">
-            {seasonTypeLabel(selectedSeasonType)} – Week {selectedWeek} Recap (
-            {selectedYear})
-          </h2>
-
-          <RecapSection
-            title="🔥 Top Scorers"
-            users={history.recap?.topScorers}
-          />
-          <RecapSection
-            title="❄️ Lowest Scorers"
-            users={history.recap?.lowestScorers}
-          />
-          <RecapSection
-            title="📈 Biggest Risers"
-            users={history.recap?.biggestRisers}
-          />
-          <RecapSection
-            title="📉 Biggest Fallers"
-            users={history.recap?.biggestFallers}
-          />
-
-          <div className="bg-[var(--card-color)] border border-[var(--border-color)] rounded-xl p-4 shadow-sm">
-            <h2 className="text-xl font-bold mb-3 text-[var(--text-color)]">
-              📊 All Scores
+        <>
+          <div className="space-y-1">
+            <p className="text-xs font-bold uppercase tracking-widest text-accent-text">
+              {seasonTypeLabel(selectedSeasonType)} · {selectedYear}
+            </p>
+            <h2 className="text-3xl uppercase italic leading-none">
+              Week {selectedWeek} Recap
             </h2>
-            {history.recap?.scores?.length ? (
-              <>
-                <ul className="space-y-2">
-                  {history.recap.scores.map((u) => (
-                    <li key={u.uid} className="flex items-center gap-3">
-                      <Image
-                        src={u.profilePicture || "/default-avatar.png"}
-                        alt={u.fullName || u.uid}
-                        width={32}
-                        height={32}
-                        className="rounded-full border border-[var(--border-color)]"
-                      />
-                      <span className="text-[var(--text-color)] font-medium">
-                        {u.fullName || u.uid}
-                      </span>
-                      <span className="ml-auto text-[var(--text-color)] font-semibold">
-                        {u.score} pts
-                      </span>
-                    </li>
-                  ))}
-                </ul>
-                <p className="text-center text-sm text-[var(--text-color)] mt-4">
-                  {history.recap.scores.length} participants — Avg Score:{" "}
-                  {avgScore}
-                </p>
-              </>
-            ) : (
-              <p className="opacity-70">No scores recorded.</p>
-            )}
           </div>
 
+          <RecapSummary recap={history.recap} />
+
           {history.games && history.games.length > 0 && (
-            <div className="bg-[var(--card-color)] border border-[var(--border-color)] rounded-xl p-4 shadow-sm">
-              <h2 className="text-xl font-bold mb-3 text-[var(--text-color)]">
-                🏈 Weekly Matchups
+            <section className="space-y-3">
+              <h2 className="text-2xl uppercase italic leading-none pt-2">
+                Weekly Matchups
               </h2>
               <WeeklyResultsView
                 games={history.games}
@@ -299,10 +253,26 @@ export default function HistoryPage() {
                 gameOfTheWeekId={history.gameOfTheWeekId}
                 currentUserId={user?.uid}
               />
-            </div>
+            </section>
           )}
-        </div>
+        </>
       )}
     </div>
+  );
+}
+
+function FilterSelect({ label, value, onChange, children }) {
+  return (
+    <label className="relative block">
+      <span className="sr-only">{label}</span>
+      <select
+        value={value}
+        onChange={onChange}
+        className="w-full appearance-none rounded-xl bg-surface border border-line shadow-card pl-3 pr-8 py-2.5 text-sm font-semibold text-fg focus:outline-none focus:ring-2 focus:ring-accent"
+      >
+        {children}
+      </select>
+      <FaChevronDown className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-xs text-muted" />
+    </label>
   );
 }

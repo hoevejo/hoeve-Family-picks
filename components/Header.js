@@ -6,6 +6,9 @@ import { FaFootballBall } from "react-icons/fa";
 import { FiRefreshCw } from "react-icons/fi";
 import Image from "next/image";
 
+const menuItem =
+  "w-full px-4 py-2.5 text-left flex items-center gap-2 hover:bg-accent/10 transition-colors";
+
 export default function Header() {
   const { user, logout, isAdmin } = useAuth();
   const router = useRouter();
@@ -23,23 +26,28 @@ export default function Header() {
   }, []);
 
   return (
-    <header className="fixed top-0 left-0 w-full h-16 bg-[var(--accent-color)] text-white shadow-md z-50 transition-colors">
-      <div className="max-w-7xl mx-auto px-6 h-full flex justify-between items-center">
+    <header className="fixed top-0 left-0 w-full pt-[env(safe-area-inset-top)] bg-accent-gradient text-white shadow-lg z-50">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 h-14 flex justify-between items-center">
         {/* Left: Logo + Title */}
-        <div
-          className="flex items-center space-x-2 cursor-pointer"
+        <button
+          type="button"
+          className="flex items-center gap-2"
           onClick={() => router.push("/")}
         >
-          <FaFootballBall className="text-xl" />
-          <h1 className="text-xl font-bold tracking-wide">NFL Pick&apos;em</h1>
-        </div>
+          <span className="grid place-items-center h-8 w-8 rounded-lg bg-white/15 ring-1 ring-white/25">
+            <FaFootballBall className="text-base -rotate-45" />
+          </span>
+          <span className="font-display text-2xl font-extrabold uppercase italic tracking-wide leading-none">
+            NFL Pick&apos;em
+          </span>
+        </button>
 
         {/* Right: User Info Dropdown */}
         {user && (
           <div className="relative" ref={dropdownRef}>
             <button
               onClick={() => setDropdownOpen((prev) => !prev)}
-              className="flex items-center space-x-2 hover:opacity-90 transition-opacity"
+              className="flex items-center gap-2 rounded-full pl-3 pr-1 py-1 hover:bg-white/10 transition-colors"
             >
               <span className="hidden sm:inline font-medium">
                 {user.displayName}
@@ -49,18 +57,18 @@ export default function Header() {
                 alt="Profile"
                 width={32}
                 height={32}
-                className="rounded-full object-cover border border-white"
+                className="rounded-full object-cover ring-2 ring-white/50"
               />
             </button>
 
             {dropdownOpen && (
-              <div className="absolute right-0 mt-2 w-48 bg-[var(--card-color)] text-[var(--text-color)] border border-[var(--border-color)] rounded-lg shadow-lg z-50 transition-all">
+              <div className="absolute right-0 mt-2 w-52 py-1 bg-surface text-fg border border-line rounded-xl shadow-card overflow-hidden z-50">
                 <button
                   onClick={() => {
                     router.push("/profile");
                     setDropdownOpen(false);
                   }}
-                  className="w-full px-4 py-2 text-left hover:bg-[var(--accent-color)] hover:text-white transition-colors"
+                  className={menuItem}
                 >
                   Profile
                 </button>
@@ -71,7 +79,7 @@ export default function Header() {
                       router.push("/admin");
                       setDropdownOpen(false);
                     }}
-                    className="w-full px-4 py-2 text-left hover:bg-[var(--accent-color)] hover:text-white transition-colors"
+                    className={menuItem}
                   >
                     Admin
                   </button>
@@ -82,18 +90,20 @@ export default function Header() {
                     window.location.reload();
                     setDropdownOpen(false);
                   }}
-                  className="w-full px-4 py-2 text-left flex items-center gap-2 hover:bg-[var(--accent-color)] hover:text-white transition-colors"
+                  className={menuItem}
                 >
                   <FiRefreshCw className="text-sm" />
                   Refresh
                 </button>
+
+                <div className="my-1 border-t border-line" />
 
                 <button
                   onClick={() => {
                     logout();
                     setDropdownOpen(false);
                   }}
-                  className="w-full px-4 py-2 text-left text-red-500 hover:bg-[var(--accent-hover)] hover:text-white transition-colors rounded-b-md"
+                  className={`${menuItem} text-danger hover:bg-danger/10`}
                 >
                   Logout
                 </button>
