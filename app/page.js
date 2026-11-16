@@ -310,7 +310,7 @@ function PodiumSpot({ entry, place, rank, isCurrentUser, showChange }) {
       >
         {entry.totalPoints}
       </span>
-      <span className="text-[11px] uppercase tracking-wider text-white/70">
+      <span className="text-[11px] font-semibold uppercase tracking-wider text-white">
         pts
       </span>
       {showChange && (
@@ -329,7 +329,7 @@ function ChangeBadge({ change, onDark = false }) {
   if (change === 0) {
     return (
       <span
-        className={`inline-block w-10 text-center text-sm ${onDark ? "text-white/60" : "text-muted"}`}
+        className={`inline-block w-10 text-center text-sm ${onDark ? "text-white" : "text-muted"}`}
       >
         —
       </span>
@@ -337,7 +337,7 @@ function ChangeBadge({ change, onDark = false }) {
   }
   const up = change > 0;
   const tone = onDark
-    ? "bg-white/20 text-white"
+    ? "bg-black/25 text-white"
     : up
       ? "bg-success/15 text-success"
       : "bg-danger/15 text-danger";

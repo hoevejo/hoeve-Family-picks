@@ -10,11 +10,11 @@
   color-scheme: light;
   --bg-color: #eef2f7;
   --text-color: #0f172a;
-  --muted-color: #64748b;
+  --muted-color: #5d6b81;
   --accent-color: #0076b6;
   --accent-hover: #005a87;
-  --accent-text: #0076b6;
-  --accent-gradient: linear-gradient(135deg, #0086cf 0%, #004f7c 100%);
+  --accent-text: #0071ae;
+  --accent-gradient: linear-gradient(135deg, #007abd 0%, #004f7c 100%);
   --card-color: #ffffff;
   --surface-2: #f1f5f9;
   --border-color: #e2e8f0;
@@ -22,9 +22,9 @@
   --link-hover: #005a87;
   --input-bg: #ffffff;
   --input-text: #0f172a;
-  --success-color: #16a34a;
-  --danger-color: #dc2626;
-  --gold-text: #a87800;
+  --success-color: #107636;
+  --danger-color: #c21f1f;
+  --gold-text: #825d00;
   --logo-plate: transparent;
   --shadow-color: rgba(15, 23, 42, 0.12);
 }
@@ -37,7 +37,7 @@
   --accent-color: #0076b6;
   --accent-hover: #0086cf;
   --accent-text: #4fb3e8;
-  --accent-gradient: linear-gradient(135deg, #0086cf 0%, #003e62 100%);
+  --accent-gradient: linear-gradient(135deg, #007abd 0%, #003e62 100%);
   --card-color: #121a2b;
   --surface-2: #1a2438;
   --border-color: #24304a;
@@ -61,7 +61,7 @@
     --accent-color: #0076b6;
     --accent-hover: #0086cf;
     --accent-text: #4fb3e8;
-    --accent-gradient: linear-gradient(135deg, #0086cf 0%, #003e62 100%);
+    --accent-gradient: linear-gradient(135deg, #007abd 0%, #003e62 100%);
     --card-color: #121a2b;
     --surface-2: #1a2438;
     --border-color: #24304a;
