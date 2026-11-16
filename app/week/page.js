@@ -333,6 +333,26 @@ export default function WeeklyPicks() {
     </div>
   );
 
+  // Shown above the games and again just above Submit.
+  const pickProgress = (
+    <div>
+      <div className="flex justify-between text-sm mb-1.5">
+        <span className="font-semibold">
+          {pickedCount} of {games.length} picked
+        </span>
+        {pickedCount === games.length && (
+          <span className="text-success font-semibold">All set!</span>
+        )}
+      </div>
+      <div className="h-2 rounded-full bg-surface-2 overflow-hidden">
+        <div
+          className="h-full rounded-full bg-accent-gradient transition-all"
+          style={{ width: `${(pickedCount / games.length) * 100}%` }}
+        />
+      </div>
+    </div>
+  );
+
   return (
     <div className="max-w-3xl mx-auto py-6 space-y-5">
       {isLoading ? (
@@ -369,23 +389,7 @@ export default function WeeklyPicks() {
             </span>
           </div>
 
-          {/* Progress */}
-          <div>
-            <div className="flex justify-between text-sm mb-1.5">
-              <span className="font-semibold">
-                {pickedCount} of {games.length} picked
-              </span>
-              {pickedCount === games.length && (
-                <span className="text-success font-semibold">All set!</span>
-              )}
-            </div>
-            <div className="h-2 rounded-full bg-surface-2 overflow-hidden">
-              <div
-                className="h-full rounded-full bg-accent-gradient transition-all"
-                style={{ width: `${(pickedCount / games.length) * 100}%` }}
-              />
-            </div>
-          </div>
+          {pickProgress}
 
           <form onSubmit={handleSubmit} className="space-y-4">
             {/* Regular games (exclude GOTW card below) */}
@@ -494,6 +498,8 @@ export default function WeeklyPicks() {
                 </div>
               </div>
             )}
+
+            {pickProgress}
 
             <button
               type="submit"
