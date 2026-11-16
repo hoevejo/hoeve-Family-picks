@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useLayoutEffect, useMemo } from "react";
+import { Barlow_Condensed, Inter } from "next/font/google";
 import { useRouter, usePathname } from "next/navigation";
 import { AuthProvider, useAuth } from "../context/AuthContext";
 import Header from "../components/Header";
@@ -9,6 +10,14 @@ import LoadingScreen from "../components/LoadingScreen";
 import { Toaster, toast } from "react-hot-toast";
 import { applyTheme, THEME_SCRIPT, THEME_STORAGE_KEY } from "../lib/theme";
 import "./globals.css";
+
+// Exposed as CSS variables; globals.css maps them to font-sans / font-display.
+const inter = Inter({ subsets: ["latin"], variable: "--font-inter" });
+const barlow = Barlow_Condensed({
+  subsets: ["latin"],
+  weight: ["600", "700", "800"],
+  variable: "--font-barlow",
+});
 
 function ProtectedLayout({ children }) {
   const { user, loading } = useAuth();
@@ -72,7 +81,11 @@ export default function RootLayout({ children }) {
   }, []);
 
   return (
-    <html lang="en" suppressHydrationWarning>
+    <html
+      lang="en"
+      className={`${inter.variable} ${barlow.variable}`}
+      suppressHydrationWarning
+    >
       <head>
         {/* text/plain on the client so React doesn't warn about rendering a script */}
         <script

@@ -2,68 +2,131 @@
 @import "tailwindcss";
 
 /*
- * Tailwind v4 defaults `border-*` / `divide-*` to `currentColor` (v3 used
- * gray-200). Several elements here use a bare `border` utility and rely on the
- * old light-grey default, so restore it globally.
- */
-@layer base {
-  *,
-  ::after,
-  ::before,
-  ::backdrop,
-  ::file-selector-button {
-    border-color: var(--color-gray-200, currentColor);
-  }
-}
-
-/*
  * Theme: Honolulu blue, light and dark. Light is the default; dark applies
  * when data-theme="dark" is set on <html>, or when no preference is set
  * ("system") and the OS is in dark mode. See lib/theme.js.
  */
 :root {
   color-scheme: light;
-  --bg-color: #f9fafb;
-  --text-color: #1f2937;
+  --bg-color: #eef2f7;
+  --text-color: #0f172a;
+  --muted-color: #64748b;
   --accent-color: #0076b6;
   --accent-hover: #005a87;
+  --accent-text: #0076b6;
+  --accent-gradient: linear-gradient(135deg, #0086cf 0%, #004f7c 100%);
   --card-color: #ffffff;
-  --border-color: #e5e7eb;
+  --surface-2: #f1f5f9;
+  --border-color: #e2e8f0;
   --link-color: #0076b6;
   --link-hover: #005a87;
   --input-bg: #ffffff;
-  --input-text: #111827;
-  --shadow-color: rgba(0, 0, 0, 0.1);
+  --input-text: #0f172a;
+  --success-color: #16a34a;
+  --danger-color: #dc2626;
+  --shadow-color: rgba(15, 23, 42, 0.12);
 }
 
 :root[data-theme="dark"] {
   color-scheme: dark;
-  --bg-color: #0f172a;
+  --bg-color: #0a0f1c;
   --text-color: #f1f5f9;
+  --muted-color: #94a3b8;
   --accent-color: #0076b6;
-  --accent-hover: #005a87;
-  --card-color: #1e293b;
-  --border-color: #334155;
-  --link-color: #60a5fa;
-  --link-hover: #0076b6;
-  --input-bg: #1e293b;
+  --accent-hover: #0086cf;
+  --accent-text: #4fb3e8;
+  --accent-gradient: linear-gradient(135deg, #0086cf 0%, #003e62 100%);
+  --card-color: #121a2b;
+  --surface-2: #1a2438;
+  --border-color: #24304a;
+  --link-color: #4fb3e8;
+  --link-hover: #7cc7ef;
+  --input-bg: #1a2438;
   --input-text: #f1f5f9;
+  --success-color: #22c55e;
+  --danger-color: #f87171;
   --shadow-color: rgba(0, 0, 0, 0.5);
 }
 
 @media (prefers-color-scheme: dark) {
   :root:not([data-theme="light"]) {
     color-scheme: dark;
-    --bg-color: #0f172a;
+    --bg-color: #0a0f1c;
     --text-color: #f1f5f9;
+    --muted-color: #94a3b8;
     --accent-color: #0076b6;
-    --accent-hover: #005a87;
-    --card-color: #1e293b;
-    --border-color: #334155;
-    --link-color: #60a5fa;
-    --link-hover: #0076b6;
-    --input-bg: #1e293b;
+    --accent-hover: #0086cf;
+    --accent-text: #4fb3e8;
+    --accent-gradient: linear-gradient(135deg, #0086cf 0%, #003e62 100%);
+    --card-color: #121a2b;
+    --surface-2: #1a2438;
+    --border-color: #24304a;
+    --link-color: #4fb3e8;
+    --link-hover: #7cc7ef;
+    --input-bg: #1a2438;
     --input-text: #f1f5f9;
+    --success-color: #22c55e;
+    --danger-color: #f87171;
     --shadow-color: rgba(0, 0, 0, 0.5);
+  }
+}
+
+/*
+ * Expose the theme variables as Tailwind tokens, e.g. bg-surface, text-muted,
+ * border-line, bg-accent/10. `inline` keeps them pointing at the variables so
+ * they follow light/dark. Fonts come from next/font in app/layout.js.
+ */
+@theme inline {
+  --color-page: var(--bg-color);
+  --color-surface: var(--card-color);
+  --color-surface-2: var(--surface-2);
+  --color-fg: var(--text-color);
+  --color-muted: var(--muted-color);
+  --color-line: var(--border-color);
+  --color-accent: var(--accent-color);
+  --color-accent-hover: var(--accent-hover);
+  --color-accent-text: var(--accent-text);
+  --color-success: var(--success-color);
+  --color-danger: var(--danger-color);
+
+  --font-sans: var(--font-inter), ui-sans-serif, system-ui, sans-serif;
+  --font-display:
+    var(--font-barlow), var(--font-inter), ui-sans-serif, system-ui, sans-serif;
+
+  --shadow-card:
+    0 1px 2px var(--shadow-color), 0 12px 32px -16px var(--shadow-color);
+}
+
+@utility bg-accent-gradient {
+  background-image: var(--accent-gradient);
+}
+
+@layer base {
+  /*
+   * Tailwind v4 defaults `border-*` / `divide-*` to `currentColor` (v3 used
+   * gray-200). Several elements here use a bare `border` utility and rely on
+   * a light default, so point it at the theme border color instead.
+   */
+  *,
+  ::after,
+  ::before,
+  ::backdrop,
+  ::file-selector-button {
+    border-color: var(--border-color, currentColor);
+  }
+
+  body {
+    @apply font-sans antialiased;
+    -webkit-tap-highlight-color: transparent;
+  }
+
+  h1,
+  h2,
+  h3 {
+    @apply font-display font-bold tracking-tight;
+  }
+
+  ::selection {
+    background-color: color-mix(in srgb, var(--accent-color) 30%, transparent);
   }
 }
