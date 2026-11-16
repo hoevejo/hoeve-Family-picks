@@ -217,14 +217,18 @@ export default function WeeklyRecapPage() {
           title="Biggest Risers"
           icon={FaArrowUp}
           tone="up"
-          users={recap.biggestRisers}
+          // The job lists everyone tied for the biggest change, which is
+          // everyone when nobody moved -- only show actual movers.
+          users={recap.biggestRisers.filter((u) => u.positionChange > 0)}
+          emptyText="No movement this week."
           stat={(u) => formatMove(u.positionChange)}
         />
         <RecapSection
           title="Biggest Fallers"
           icon={FaArrowDown}
           tone="down"
-          users={recap.biggestFallers}
+          users={recap.biggestFallers.filter((u) => u.positionChange < 0)}
+          emptyText="No movement this week."
           stat={(u) => formatMove(u.positionChange)}
         />
       </div>

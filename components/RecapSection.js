@@ -23,6 +23,7 @@ export default function RecapSection({
   icon: Icon = null,
   tone = "accent",
   stat = null,
+  emptyText = "No data.",
 }) {
   return (
     <div className="rounded-2xl bg-surface border border-line shadow-card p-4">
@@ -37,7 +38,7 @@ export default function RecapSection({
         {title}
       </h2>
       {users.length === 0 ? (
-        <p className="text-sm text-muted">No data.</p>
+        <p className="text-sm text-muted">{emptyText}</p>
       ) : (
         <ul className="space-y-2">
           {users.map((u) => {
