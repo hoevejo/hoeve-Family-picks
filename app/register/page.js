@@ -80,7 +80,7 @@ export default function Register() {
         profilePicture: avatarUrl,
         isAdmin: false,
         notificationsEnabled: false,
-        theme: "theme-blue-light",
+        theme: "system",
       });
 
       // World-readable display fields only, so other pages don't have to

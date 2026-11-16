@@ -8,19 +8,12 @@ import toast from "react-hot-toast";
 import { FaPencilAlt } from "react-icons/fa";
 import Modal from "../../components/Modal";
 import avatarOptions from "@/data/avatarList.js";
-
-const themes = [
-  { name: "Blue (Light)", value: "theme-blue-light" },
-  { name: "Blue (Dark)", value: "theme-blue-dark" },
-  { name: "Sunset (Light)", value: "theme-orange-light" },
-  { name: "Sunset (Dark)", value: "theme-orange-dark" },
-  { name: "Forest (Light)", value: "theme-green-light" },
-  { name: "Forest (Dark)", value: "theme-green-dark" },
-  { name: "Lavender (Light)", value: "theme-purple-light" },
-  { name: "Lavender (Dark)", value: "theme-purple-dark" },
-  { name: "Gold (Light)", value: "theme-gold-light" },
-  { name: "Gold (Dark)", value: "theme-gold-dark" },
-];
+import {
+  applyTheme,
+  normalizeTheme,
+  THEME_OPTIONS,
+  THEME_STORAGE_KEY,
+} from "../../lib/theme";
 
 export default function ProfilePage() {
   const { user, logout } = useAuth();
@@ -38,8 +31,9 @@ export default function ProfilePage() {
 
   useEffect(() => {
     if (user) {
-      const theme =
-        localStorage.getItem("theme") || user.theme || "theme-blue-light";
+      const theme = normalizeTheme(
+        localStorage.getItem(THEME_STORAGE_KEY) || user.theme,
+      );
       const firstName =
         localStorage.getItem("firstName") || user.firstName || "";
       const lastName = localStorage.getItem("lastName") || user.lastName || "";
@@ -51,20 +45,19 @@ export default function ProfilePage() {
         profilePicture,
         theme,
       });
-      document.body.className = theme;
-      localStorage.setItem("theme", theme);
+      applyTheme(theme);
     }
   }, [user]);
 
   const handleChange = (e) => {
     const { name, value } = e.target;
     setForm((prev) => ({ ...prev, [name]: value }));
+  };
 
-    if (name === "theme") {
-      document.body.className = value;
-      localStorage.setItem("theme", value);
-      handleSave("theme", value);
-    }
+  const handleThemeChange = (value) => {
+    setForm((prev) => ({ ...prev, theme: value }));
+    applyTheme(value);
+    handleSave("theme", value);
   };
 
   const handleSave = async (field, value = null) => {
@@ -201,18 +194,22 @@ export default function ProfilePage() {
 
           <div>
             <label className="block font-medium">Theme</label>
-            <select
-              name="theme"
-              value={form.theme}
-              onChange={handleChange}
-              className="w-full p-2 border rounded-lg bg-[var(--input-bg)] text-[var(--input-text)]"
-            >
-              {themes.map((t) => (
-                <option key={t.value} value={t.value}>
-                  {t.name}
-                </option>
+            <div className="flex gap-2">
+              {THEME_OPTIONS.map((t) => (
+                <button
+                  key={t.value}
+                  type="button"
+                  onClick={() => handleThemeChange(t.value)}
+                  className={`flex-1 p-2 border rounded-lg transition-colors ${
+                    form.theme === t.value
+                      ? "bg-[var(--accent-color)] text-white border-transparent"
+                      : "bg-[var(--input-bg)] text-[var(--input-text)]"
+                  }`}
+                >
+                  {t.label}
+                </button>
               ))}
-            </select>
+            </div>
           </div>
         </div>
 

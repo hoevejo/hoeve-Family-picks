@@ -45,17 +45,6 @@ export default function WeeklyPicks() {
   const maxWagerPoints = Math.min(userPoints, wagerMaxPoints);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
-  // theme
-  useEffect(() => {
-    const theme = localStorage.getItem("theme") || "theme-light";
-    document.body.classList.remove(
-      "theme-light",
-      "theme-dark",
-      "theme-vibrant",
-    );
-    document.body.classList.add(theme);
-  }, []);
-
   // load config
   useEffect(() => {
     const fetchConfig = async () => {

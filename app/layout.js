@@ -1,12 +1,13 @@
 "use client";
 
-import { useEffect, useMemo } from "react";
+import { useEffect, useLayoutEffect, useMemo } from "react";
 import { useRouter, usePathname } from "next/navigation";
 import { AuthProvider, useAuth } from "../context/AuthContext";
 import Header from "../components/Header";
 import Footer from "../components/Footer";
 import LoadingScreen from "../components/LoadingScreen";
 import { Toaster, toast } from "react-hot-toast";
+import { applyTheme, THEME_SCRIPT, THEME_STORAGE_KEY } from "../lib/theme";
 import "./globals.css";
 
 function ProtectedLayout({ children }) {
@@ -47,6 +48,14 @@ function ProtectedLayout({ children }) {
 }
 
 export default function RootLayout({ children }) {
+  // THEME_SCRIPT sets the theme before first paint; this re-applies it after
+  // React's dev-mode remount clears <html> attributes. No-op in production.
+  useLayoutEffect(() => {
+    try {
+      applyTheme(localStorage.getItem(THEME_STORAGE_KEY));
+    } catch {}
+  }, []);
+
   useEffect(() => {
     // ✅ Register Service Worker if not already registered
     if ("serviceWorker" in navigator) {
@@ -63,8 +72,16 @@ export default function RootLayout({ children }) {
   }, []);
 
   return (
-    <html lang="en">
+    <html lang="en" suppressHydrationWarning>
       <head>
+        {/* text/plain on the client so React doesn't warn about rendering a script */}
+        <script
+          type={
+            typeof window === "undefined" ? "text/javascript" : "text/plain"
+          }
+          suppressHydrationWarning
+          dangerouslySetInnerHTML={{ __html: THEME_SCRIPT }}
+        />
         <meta charSet="UTF-8" />
         <meta name="viewport" content="width=device-width, initial-scale=1.0" />
         <meta name="theme-color" content="#0076b6" />

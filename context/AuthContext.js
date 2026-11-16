@@ -10,6 +10,7 @@ import {
 import { doc, getDoc } from "firebase/firestore";
 import { auth } from "../lib/firebaseConfig";
 import { db } from "../lib/firebaseConfig";
+import { applyTheme } from "../lib/theme";
 
 // Auth context structure
 const AuthContext = createContext({
@@ -50,9 +51,7 @@ export const AuthProvider = ({ children }) => {
                 setUser(mergedUser);
                 setIsAdmin(firestoreUser.isAdmin === true);
 
-                const theme = firestoreUser.theme || "theme-blue-light";
-                document.body.className = theme;
-                localStorage.setItem("theme", theme);
+                applyTheme(firestoreUser.theme);
               } else {
                 console.warn("User document not found.");
                 setUser(currentUser);
