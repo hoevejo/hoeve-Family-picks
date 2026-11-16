@@ -40,12 +40,16 @@ function ProtectedLayout({ children }) {
   if (loading) return <LoadingScreen />;
 
   return (
-    <div className="h-screen w-screen overflow-hidden bg-[var(--bg-color)] text-[var(--text-color)] transition-colors">
+    <div className="h-dvh w-full overflow-hidden bg-page text-fg transition-colors">
       {!isAuthFree && <Header />}
 
       {!isAuthFree ? (
-        <main className="pt-[64px] pb-[56px] overflow-y-auto h-[calc(100vh-64px-56px)] w-full max-w-screen-xl mx-auto px-4 sm:px-6">
-          {children}
+        // Scrolls between the fixed header (h-14) and bottom nav (h-16),
+        // plus the iOS notch / home-indicator insets.
+        <main className="h-dvh overflow-y-auto pt-[calc(3.5rem+env(safe-area-inset-top))] pb-[calc(4rem+env(safe-area-inset-bottom))]">
+          <div className="w-full max-w-screen-xl mx-auto px-4 sm:px-6">
+            {children}
+          </div>
         </main>
       ) : (
         <main className="min-h-screen">{children}</main>
@@ -96,7 +100,10 @@ export default function RootLayout({ children }) {
           dangerouslySetInnerHTML={{ __html: THEME_SCRIPT }}
         />
         <meta charSet="UTF-8" />
-        <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+        <meta
+          name="viewport"
+          content="width=device-width, initial-scale=1.0, viewport-fit=cover"
+        />
         <meta name="theme-color" content="#0076b6" />
         <link rel="manifest" href="/manifest.json" />
         <link rel="apple-touch-icon" href="/icons/icon-192x192.png" />
