@@ -136,7 +136,7 @@ export default function Register() {
 
   return (
     <div
-      className="relative min-h-screen flex items-center justify-center bg-cover bg-center bg-no-repeat"
+      className="relative min-h-screen flex items-center justify-center bg-cover bg-center bg-no-repeat text-gray-900 [color-scheme:light]"
       style={{ backgroundImage: "url('/images/football-background.png')" }}
     >
       {/* Dark overlay */}
@@ -157,7 +157,7 @@ export default function Register() {
               onChange={handleChange}
               required
               autoFocus
-              className="w-full p-3 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+              className="w-full p-3 border border-gray-300 rounded-lg bg-white text-gray-900 placeholder:text-gray-500 focus:outline-none focus:ring-2 focus:ring-blue-500 autofill:shadow-[inset_0_0_0_1000px_#fff] autofill:[-webkit-text-fill-color:#111827]"
             />
             <input
               name="lastName"
@@ -165,7 +165,7 @@ export default function Register() {
               value={form.lastName}
               onChange={handleChange}
               required
-              className="w-full p-3 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+              className="w-full p-3 border border-gray-300 rounded-lg bg-white text-gray-900 placeholder:text-gray-500 focus:outline-none focus:ring-2 focus:ring-blue-500 autofill:shadow-[inset_0_0_0_1000px_#fff] autofill:[-webkit-text-fill-color:#111827]"
             />
             <input
               type="email"
@@ -174,7 +174,7 @@ export default function Register() {
               value={form.email}
               onChange={handleChange}
               required
-              className="w-full p-3 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+              className="w-full p-3 border border-gray-300 rounded-lg bg-white text-gray-900 placeholder:text-gray-500 focus:outline-none focus:ring-2 focus:ring-blue-500 autofill:shadow-[inset_0_0_0_1000px_#fff] autofill:[-webkit-text-fill-color:#111827]"
             />
             <input
               type="password"
@@ -183,7 +183,7 @@ export default function Register() {
               value={form.password}
               onChange={handleChange}
               required
-              className="w-full p-3 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+              className="w-full p-3 border border-gray-300 rounded-lg bg-white text-gray-900 placeholder:text-gray-500 focus:outline-none focus:ring-2 focus:ring-blue-500 autofill:shadow-[inset_0_0_0_1000px_#fff] autofill:[-webkit-text-fill-color:#111827]"
             />
             <input
               type="password"
@@ -192,7 +192,7 @@ export default function Register() {
               value={form.confirmPassword}
               onChange={handleChange}
               required
-              className="w-full p-3 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+              className="w-full p-3 border border-gray-300 rounded-lg bg-white text-gray-900 placeholder:text-gray-500 focus:outline-none focus:ring-2 focus:ring-blue-500 autofill:shadow-[inset_0_0_0_1000px_#fff] autofill:[-webkit-text-fill-color:#111827]"
             />
 
             <button

@@ -44,8 +44,9 @@ export default function Login() {
   };
 
   return (
+    // Auth pages keep one fixed light look regardless of the theme setting.
     <div
-      className="relative min-h-screen flex items-center justify-center bg-cover bg-center bg-no-repeat"
+      className="relative min-h-screen flex items-center justify-center bg-cover bg-center bg-no-repeat text-gray-900 [color-scheme:light]"
       style={{ backgroundImage: "url('/images/football-background.png')" }}
     >
       {/* Dark overlay */}
@@ -66,7 +67,7 @@ export default function Login() {
               onChange={(e) => setEmail(e.target.value)}
               required
               aria-label="Email"
-              className="w-full p-3 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+              className="w-full p-3 border border-gray-300 rounded-lg bg-white text-gray-900 placeholder:text-gray-500 focus:outline-none focus:ring-2 focus:ring-blue-500 autofill:shadow-[inset_0_0_0_1000px_#fff] autofill:[-webkit-text-fill-color:#111827]"
             />
             <input
               type="password"
@@ -75,7 +76,7 @@ export default function Login() {
               onChange={(e) => setPassword(e.target.value)}
               required
               aria-label="Password"
-              className="w-full p-3 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+              className="w-full p-3 border border-gray-300 rounded-lg bg-white text-gray-900 placeholder:text-gray-500 focus:outline-none focus:ring-2 focus:ring-blue-500 autofill:shadow-[inset_0_0_0_1000px_#fff] autofill:[-webkit-text-fill-color:#111827]"
             />
             <button
               type="submit"
