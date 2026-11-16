@@ -2,7 +2,6 @@
 
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
-import Image from "next/image";
 import {
   FaCheck,
   FaClock,
@@ -23,6 +22,7 @@ import {
 import { db, auth } from "../../lib/firebaseConfig";
 import { useAuth } from "../../context/AuthContext";
 import WeeklyResultsView from "../../components/WeeklyResultsView";
+import TeamLogo from "../../components/TeamLogo";
 import {
   SEASON_TYPES,
   normalizeSeasonType,
@@ -605,13 +605,7 @@ function TeamTile({ team, selected, onSelect, gold }) {
           <FaCheck />
         </span>
       )}
-      <Image
-        src={team.logo}
-        alt={team.mascot}
-        width={56}
-        height={56}
-        className="h-14 w-14 object-contain"
-      />
+      <TeamLogo team={team} size={52} />
       <span className="mt-2 font-display text-xl font-bold uppercase leading-tight truncate w-full">
         {team.mascot || team.name}
       </span>

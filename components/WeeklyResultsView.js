@@ -1,7 +1,7 @@
 "use client";
 
-import Image from "next/image";
 import { FaChevronDown, FaStar } from "react-icons/fa";
+import TeamLogo from "./TeamLogo";
 
 /**
  * Per-game breakdown of who picked what and whether they were right --
@@ -62,12 +62,7 @@ export default function WeeklyResultsView({
                 return (
                   <div key={team.id}>
                     <div className="flex items-center gap-2 mb-2">
-                      <Image
-                        src={team.logo}
-                        alt={team.name}
-                        width={24}
-                        height={24}
-                      />
+                      <TeamLogo team={team} size={22} />
                       <span className={`font-semibold ${teamColor}`}>
                         {team.name}
                       </span>
@@ -128,7 +123,7 @@ function TeamAbbr({ team, winnerId }) {
 
   return (
     <span className="flex items-center gap-1.5">
-      <Image src={team.logo} alt={team.name} width={24} height={24} />
+      <TeamLogo team={team} size={22} />
       <span className={`font-display text-lg font-bold ${color}`}>
         {team.abbreviation}
       </span>

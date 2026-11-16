@@ -25,6 +25,7 @@
   --success-color: #16a34a;
   --danger-color: #dc2626;
   --gold-text: #a87800;
+  --logo-plate: transparent;
   --shadow-color: rgba(15, 23, 42, 0.12);
 }
 
@@ -47,6 +48,7 @@
   --success-color: #22c55e;
   --danger-color: #f87171;
   --gold-text: #f5b301;
+  --logo-plate: #e8edf3;
   --shadow-color: rgba(0, 0, 0, 0.5);
 }
 
@@ -70,6 +72,7 @@
     --success-color: #22c55e;
     --danger-color: #f87171;
     --gold-text: #f5b301;
+    --logo-plate: #e8edf3;
     --shadow-color: rgba(0, 0, 0, 0.5);
   }
 }
@@ -92,6 +95,7 @@
   --color-success: var(--success-color);
   --color-danger: var(--danger-color);
   --color-gold-text: var(--gold-text);
+  --color-logo-plate: var(--logo-plate);
 
   --font-sans: var(--font-inter), ui-sans-serif, system-ui, sans-serif;
   --font-display:
