@@ -3,7 +3,14 @@
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import Image from "next/image";
-import { FaStar } from "react-icons/fa";
+import {
+  FaCheck,
+  FaClock,
+  FaLock,
+  FaMinus,
+  FaPlus,
+  FaStar,
+} from "react-icons/fa";
 import {
   collection,
   doc,
@@ -302,183 +309,188 @@ export default function WeeklyPicks() {
     }
   };
 
+  const setWagerPoints = (n) =>
+    setWagerPick((prev) =>
+      prev
+        ? { ...prev, points: Math.max(0, Math.min(n || 0, maxWagerPoints)) }
+        : prev,
+    );
+
+  const regularGames = games.filter(
+    (game) => String(game.id) !== String(gameOfTheWeekId),
+  );
+  const gotwGame = games.find((g) => String(g.id) === String(gameOfTheWeekId));
+  const pickedCount = games.filter(
+    (g) => predictions[String(g.id)]?.teamId,
+  ).length;
+
+  const weekHeader = (
+    <div className="space-y-1">
+      <p className="text-xs font-bold uppercase tracking-widest text-accent-text">
+        {seasonTypeLabel(seasonType)}
+      </p>
+      <h1 className="text-4xl uppercase italic leading-none">Week {week}</h1>
+    </div>
+  );
+
   return (
-    <div className="p-6 bg-[var(--bg-color)] text-[var(--text-color)] transition-colors min-h-screen">
+    <div className="max-w-3xl mx-auto py-6 space-y-5">
       {isLoading ? (
-        <p className="text-center">Loading...</p>
+        <div className="space-y-3" aria-label="Loading games">
+          {Array.from({ length: 4 }).map((_, i) => (
+            <div
+              key={i}
+              className="h-48 rounded-2xl bg-surface border border-line animate-pulse"
+            />
+          ))}
+        </div>
       ) : !games.length ? (
-        <p className="text-center text-red-500">
-          No games available for {seasonTypeLabel(seasonType)} - Week {week}.
-        </p>
+        <div className="rounded-2xl bg-surface border border-line shadow-card p-8 text-center">
+          <p className="font-semibold">No games available yet</p>
+          <p className="text-sm text-muted mt-1">
+            {seasonTypeLabel(seasonType)} - Week {week}
+          </p>
+        </div>
       ) : !isDeadlinePassed ? (
         <>
-          <h1 className="text-2xl font-bold">
-            Make Your Predictions ({seasonTypeLabel(seasonType)} - Week {week})
-          </h1>
-          <h2>
-            Deadline:{" "}
-            {deadline?.toLocaleString("en-US", {
-              weekday: "short",
-              month: "short",
-              day: "numeric",
-              hour: "numeric",
-              minute: "numeric",
-              timeZoneName: "short",
-            })}
-          </h2>
+          <div className="flex flex-wrap items-end justify-between gap-3">
+            {weekHeader}
+            <span className="inline-flex items-center gap-2 rounded-full bg-surface border border-line px-3 py-1.5 text-sm font-medium shadow-card">
+              <FaClock className="text-accent-text" />
+              Picks lock{" "}
+              {deadline?.toLocaleString("en-US", {
+                weekday: "short",
+                month: "short",
+                day: "numeric",
+                hour: "numeric",
+                minute: "numeric",
+                timeZoneName: "short",
+              })}
+            </span>
+          </div>
 
-          <form onSubmit={handleSubmit}>
+          {/* Progress */}
+          <div>
+            <div className="flex justify-between text-sm mb-1.5">
+              <span className="font-semibold">
+                {pickedCount} of {games.length} picked
+              </span>
+              {pickedCount === games.length && (
+                <span className="text-success font-semibold">All set!</span>
+              )}
+            </div>
+            <div className="h-2 rounded-full bg-surface-2 overflow-hidden">
+              <div
+                className="h-full rounded-full bg-accent-gradient transition-all"
+                style={{ width: `${(pickedCount / games.length) * 100}%` }}
+              />
+            </div>
+          </div>
+
+          <form onSubmit={handleSubmit} className="space-y-4">
             {/* Regular games (exclude GOTW card below) */}
-            {games
-              .filter((game) => String(game.id) !== String(gameOfTheWeekId))
-              .map((game) => (
-                <div
-                  key={game.id}
-                  className="my-4 p-4 bg-[var(--card-color)] shadow-md rounded-lg"
-                >
-                  <h3 className="text-lg font-semibold text-center mb-3">
-                    {game.name}
-                  </h3>
-                  <div className="flex flex-row justify-center gap-4 sm:gap-6">
-                    {[game.homeTeam, game.awayTeam].map((team) => (
-                      <label
-                        key={team.id}
-                        className={`w-36 sm:w-40 h-44 sm:h-48 flex flex-col items-center justify-center text-center p-3 border-2 rounded-lg transition-all
-                          ${
-                            predictions[String(game.id)]?.teamId ===
-                            String(team.id)
-                              ? "border-blue-500 bg-blue-100 text-blue-900 shadow-md"
-                              : "border-[var(--border-color)] bg-[var(--card-color)] hover:bg-[var(--hover-color)]"
-                          }`}
-                        onClick={() =>
-                          handlePredictionChange(
-                            String(game.id),
-                            String(team.id),
-                          )
-                        }
-                      >
-                        <input
-                          type="radio"
-                          name={`prediction-${game.id}`}
-                          value={team.id}
-                          checked={
-                            predictions[String(game.id)]?.teamId ===
-                            String(team.id)
-                          }
-                          onChange={() =>
-                            handlePredictionChange(
-                              String(game.id),
-                              String(team.id),
-                            )
-                          }
-                          className="hidden"
-                        />
-                        <Image
-                          src={team.logo}
-                          alt={team.mascot}
-                          width={64}
-                          height={64}
-                        />
-                        <span className="mt-2 text-lg font-semibold truncate w-full">
-                          {team.mascot || team.name}
-                        </span>
-                        <span className="text-sm text-gray-500">
-                          Record: {team.record?.trim() ? team.record : "0-0"}
-                        </span>
-                      </label>
-                    ))}
-                  </div>
-                </div>
-              ))}
+            {regularGames.map((game) => (
+              <div
+                key={game.id}
+                className="rounded-2xl bg-surface border border-line shadow-card p-4"
+              >
+                <GameMeta game={game} />
+                <TeamPair
+                  game={game}
+                  selectedId={predictions[String(game.id)]?.teamId}
+                  onSelect={(teamId) =>
+                    handlePredictionChange(String(game.id), teamId)
+                  }
+                />
+              </div>
+            ))}
 
             {/* Game of the Week */}
             {gameOfTheWeekId && (
-              <div className="my-6 p-5 rounded-xl border border-[var(--border-color)] bg-[var(--card-color)] shadow-md">
-                <div className="flex items-center justify-center mb-3">
-                  <span className="inline-flex items-center gap-2 rounded-full px-3 py-1 text-xs font-semibold border border-amber-400/50 text-amber-500">
-                    <FaStar /> Game of the Week
-                  </span>
+              <div className="rounded-2xl bg-surface border-2 border-[#f5b301]/70 shadow-card overflow-hidden">
+                <div className="flex items-center justify-center gap-2 py-2 bg-gradient-to-r from-[#f5b301] to-[#ffcf4d] text-black font-display text-lg font-extrabold uppercase italic tracking-wide">
+                  <FaStar /> Game of the Week
                 </div>
 
-                <p className="text-center text-sm opacity-80 mb-4">
-                  Choose a team and risk your points. Double if you&apos;re
-                  right — lose them if you&apos;re wrong.
-                </p>
-
-                {games
-                  .filter((g) => String(g.id) === String(gameOfTheWeekId))
-                  .map((game) => (
-                    <div
-                      key={game.id}
-                      className="flex flex-row justify-center gap-4 sm:gap-6"
-                    >
-                      {[game.homeTeam, game.awayTeam].map((team) => (
-                        <label
-                          key={team.id}
-                          className={`w-36 sm:w-40 h-44 sm:h-48 flex flex-col items-center justify-center text-center p-3 border-2 rounded-lg transition-all
-                ${
-                  String(wagerPick?.teamId) === String(team.id)
-                    ? "border-amber-500 bg-amber-50 text-amber-900 shadow-md"
-                    : "border-[var(--border-color)] bg-[var(--card-color)] hover:bg-[var(--hover-color)]"
-                }`}
-                          onClick={() => {
-                            setWagerPick((prev) => ({
-                              ...(prev || {
-                                gameId: String(game.id),
-                                points: Math.min(1, userPoints || 0),
-                              }),
-                              gameId: String(game.id),
-                              teamId: String(team.id),
-                            }));
-                            // keep local predictions in sync so "all picked" logic is happy
-                            handlePredictionChange(
-                              String(game.id),
-                              String(team.id),
-                            );
-                          }}
-                        >
-                          <Image
-                            src={team.logo}
-                            alt={team.mascot}
-                            width={64}
-                            height={64}
-                          />
-                          <span className="mt-2 text-lg font-semibold truncate w-full">
-                            {team.mascot || team.name}
-                          </span>
-                          <span className="text-sm text-gray-500">
-                            Record: {team.record?.trim() ? team.record : "0-0"}
-                          </span>
-                        </label>
-                      ))}
-                    </div>
-                  ))}
-
-                <div className="mt-5 flex flex-col items-center">
-                  <label className="text-sm mb-1">Wager Amount</label>
-                  <input
-                    type="number"
-                    min={0}
-                    max={maxWagerPoints}
-                    className="w-32 p-2 border rounded-sm text-center bg-[var(--card-color)] border-[var(--border-color)]"
-                    value={wagerPick?.points ?? ""}
-                    onChange={(e) => {
-                      const n = Math.max(
-                        0,
-                        Math.min(parseInt(e.target.value) || 0, maxWagerPoints),
-                      );
-                      setWagerPick((prev) =>
-                        prev ? { ...prev, points: n } : prev,
-                      );
-                    }}
-                    disabled={!maxWagerPoints || isSubmitting}
-                  />
-                  <p className="text-xs opacity-70 mt-1">
-                    You can risk up to {maxWagerPoints} points this week
-                    {maxWagerPoints < userPoints
-                      ? ` (capped at ${wagerMaxPoints}; you have ${userPoints}).`
-                      : "."}
+                <div className="p-4">
+                  <p className="text-center text-sm text-muted mb-4">
+                    Choose a team and risk your points. Double if you&apos;re
+                    right — lose them if you&apos;re wrong.
                   </p>
+
+                  {gotwGame && (
+                    <>
+                      <GameMeta game={gotwGame} />
+                      <TeamPair
+                        game={gotwGame}
+                        gold
+                        selectedId={wagerPick?.teamId}
+                        onSelect={(teamId) => {
+                          setWagerPick((prev) => ({
+                            ...(prev || {
+                              gameId: String(gotwGame.id),
+                              points: Math.min(1, userPoints || 0),
+                            }),
+                            gameId: String(gotwGame.id),
+                            teamId,
+                          }));
+                          // keep local predictions in sync so "all picked" logic is happy
+                          handlePredictionChange(String(gotwGame.id), teamId);
+                        }}
+                      />
+                    </>
+                  )}
+
+                  <div className="mt-5 flex flex-col items-center">
+                    <label
+                      htmlFor="wager-points"
+                      className="text-xs font-bold uppercase tracking-widest text-muted mb-2"
+                    >
+                      Wager
+                    </label>
+                    <div className="flex items-center gap-2">
+                      <button
+                        type="button"
+                        aria-label="Decrease wager"
+                        onClick={() =>
+                          setWagerPoints((wagerPick?.points ?? 0) - 1)
+                        }
+                        disabled={!maxWagerPoints || isSubmitting}
+                        className="grid place-items-center h-10 w-10 rounded-full bg-surface-2 border border-line hover:bg-accent/10 disabled:opacity-40"
+                      >
+                        <FaMinus className="text-xs" />
+                      </button>
+                      <input
+                        id="wager-points"
+                        type="number"
+                        min={0}
+                        max={maxWagerPoints}
+                        className="w-20 py-1 text-center font-display text-3xl font-extrabold tabular-nums bg-transparent border-b-2 border-[#f5b301] focus:outline-none [appearance:textfield] [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none"
+                        value={wagerPick?.points ?? ""}
+                        onChange={(e) =>
+                          setWagerPoints(parseInt(e.target.value) || 0)
+                        }
+                        disabled={!maxWagerPoints || isSubmitting}
+                      />
+                      <button
+                        type="button"
+                        aria-label="Increase wager"
+                        onClick={() =>
+                          setWagerPoints((wagerPick?.points ?? 0) + 1)
+                        }
+                        disabled={!maxWagerPoints || isSubmitting}
+                        className="grid place-items-center h-10 w-10 rounded-full bg-surface-2 border border-line hover:bg-accent/10 disabled:opacity-40"
+                      >
+                        <FaPlus className="text-xs" />
+                      </button>
+                    </div>
+                    <p className="text-xs text-muted mt-2">
+                      You can risk up to {maxWagerPoints} points this week
+                      {maxWagerPoints < userPoints
+                        ? ` (capped at ${wagerMaxPoints}; you have ${userPoints}).`
+                        : "."}
+                    </p>
+                  </div>
                 </div>
               </div>
             )}
@@ -487,9 +499,7 @@ export default function WeeklyPicks() {
               type="submit"
               disabled={isSubmitting}
               aria-busy={isSubmitting ? "true" : "false"}
-              className={`bg-blue-500 text-white px-6 py-2 rounded-sm mt-4 block mx-auto transition-all
-                hover:bg-blue-600
-                disabled:opacity-60 disabled:cursor-not-allowed`}
+              className="w-full py-3.5 rounded-xl bg-accent-gradient text-white font-display text-xl font-extrabold uppercase italic tracking-wide shadow-card transition hover:brightness-110 disabled:opacity-60 disabled:cursor-not-allowed"
             >
               {isSubmitting ? (
                 <span className="inline-flex items-center gap-2">
@@ -505,9 +515,14 @@ export default function WeeklyPicks() {
       ) : (
         // Locked view
         <>
-          <h1 className="text-2xl font-bold text-center mb-4">
-            Predictions Locked – See What Everyone Picked
-          </h1>
+          <div className="flex flex-wrap items-end justify-between gap-3">
+            {weekHeader}
+            <span className="inline-flex items-center gap-2 rounded-full bg-surface border border-line px-3 py-1.5 text-sm font-medium shadow-card">
+              <FaLock className="text-accent-text" />
+              Picks locked
+            </span>
+          </div>
+          <p className="text-muted">See what everyone picked.</p>
           <WeeklyResultsView
             games={games}
             picks={allUserPicks.map((entry) => ({
@@ -523,5 +538,86 @@ export default function WeeklyPicks() {
         </>
       )}
     </div>
+  );
+}
+
+function GameMeta({ game }) {
+  const kickoff = game.date
+    ? new Date(game.date).toLocaleString("en-US", {
+        weekday: "short",
+        hour: "numeric",
+        minute: "2-digit",
+      })
+    : null;
+
+  return (
+    <div className="flex items-center justify-between gap-2 mb-3 text-xs text-muted">
+      <span className="truncate">{game.name}</span>
+      {kickoff && <span className="shrink-0 font-semibold">{kickoff}</span>}
+    </div>
+  );
+}
+
+function TeamPair({ game, selectedId, onSelect, gold = false }) {
+  return (
+    <div className="grid grid-cols-[1fr_auto_1fr] items-center gap-2 sm:gap-4">
+      <TeamTile
+        team={game.homeTeam}
+        selected={String(selectedId) === String(game.homeTeam.id)}
+        onSelect={onSelect}
+        gold={gold}
+      />
+      <span className="font-display text-lg font-extrabold italic text-muted">
+        VS
+      </span>
+      <TeamTile
+        team={game.awayTeam}
+        selected={String(selectedId) === String(game.awayTeam.id)}
+        onSelect={onSelect}
+        gold={gold}
+      />
+    </div>
+  );
+}
+
+function TeamTile({ team, selected, onSelect, gold }) {
+  const selectedStyle = gold
+    ? "border-[#f5b301] bg-[#f5b301]/15 ring-2 ring-[#f5b301]"
+    : "border-accent bg-accent/10 ring-2 ring-accent";
+
+  return (
+    <button
+      type="button"
+      aria-pressed={selected}
+      onClick={() => onSelect(String(team.id))}
+      className={`relative flex flex-col items-center text-center p-3 sm:p-4 rounded-xl border transition-all active:scale-[0.98] ${
+        selected
+          ? selectedStyle
+          : "border-line bg-surface-2/50 hover:bg-surface-2"
+      }`}
+    >
+      {selected && (
+        <span
+          className={`absolute top-2 right-2 grid place-items-center h-5 w-5 rounded-full text-[10px] ${
+            gold ? "bg-[#f5b301] text-black" : "bg-accent text-white"
+          }`}
+        >
+          <FaCheck />
+        </span>
+      )}
+      <Image
+        src={team.logo}
+        alt={team.mascot}
+        width={56}
+        height={56}
+        className="h-14 w-14 object-contain"
+      />
+      <span className="mt-2 font-display text-xl font-bold uppercase leading-tight truncate w-full">
+        {team.mascot || team.name}
+      </span>
+      <span className="text-xs text-muted tabular-nums">
+        {team.record?.trim() ? team.record : "0-0"}
+      </span>
+    </button>
   );
 }

@@ -24,6 +24,7 @@
   --input-text: #0f172a;
   --success-color: #16a34a;
   --danger-color: #dc2626;
+  --gold-text: #a87800;
   --shadow-color: rgba(15, 23, 42, 0.12);
 }
 
@@ -45,6 +46,7 @@
   --input-text: #f1f5f9;
   --success-color: #22c55e;
   --danger-color: #f87171;
+  --gold-text: #f5b301;
   --shadow-color: rgba(0, 0, 0, 0.5);
 }
 
@@ -67,6 +69,7 @@
     --input-text: #f1f5f9;
     --success-color: #22c55e;
     --danger-color: #f87171;
+    --gold-text: #f5b301;
     --shadow-color: rgba(0, 0, 0, 0.5);
   }
 }
@@ -88,6 +91,7 @@
   --color-accent-text: var(--accent-text);
   --color-success: var(--success-color);
   --color-danger: var(--danger-color);
+  --color-gold-text: var(--gold-text);
 
   --font-sans: var(--font-inter), ui-sans-serif, system-ui, sans-serif;
   --font-display:
